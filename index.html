@@ -1,10 +1,14 @@
 import React, { useState, useRef } from 'react';
-import {
-  ChevronRight, ArrowLeft, Wine, MapPin, FlaskConical, Home,
-  Calendar as CalendarIcon, History, Coffee, Wifi, Car, Sun,
-  X, Image as ImageIcon, ChevronLeft, Users, Check, Dog, Clock
-} from 'lucide-react';
-
+module.exports = {
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}", // Questa riga è fondamentale!
+  ],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+}
 /* ─────────────────────────────────────────────
    GLOBAL STYLES  (injected once at module level)
 ───────────────────────────────────────────────*/
