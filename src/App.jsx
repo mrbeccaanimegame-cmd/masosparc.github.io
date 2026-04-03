@@ -1,0 +1,1531 @@
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  ChevronRight, ArrowLeft, Wine, MapPin, FlaskConical, Home,
+  Calendar as CalendarIcon, History, Coffee, Wifi, Car, Sun,
+  X, Image as ImageIcon, ChevronLeft, Users, Check, Dog, Clock
+} from 'lucide-react';
+
+/* ─────────────────────────────────────────────
+   GLOBAL STYLES
+───────────────────────────────────────────────*/
+const GLOBAL_CSS = `
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Pinyon+Script&family=Montserrat:wght@200;300;400;600&family=Cinzel:wght@400;500;700&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: #1A1A1A; overflow-x: hidden; }
+
+.f-playfair   { font-family: 'Playfair Display', Georgia, serif; }
+.f-cormorant  { font-family: 'Cormorant Garamond', Georgia, serif; }
+.f-montserrat { font-family: 'Montserrat', sans-serif; }
+.f-cinzel     { font-family: 'Cinzel', serif; }
+.f-pinyon     { font-family: 'Pinyon Script', cursive; }
+
+@keyframes fadeIn    { from { opacity: 0 } to { opacity: 1 } }
+@keyframes slideUp   { from { opacity:0; transform:translateY(20px) } to { opacity:1; transform:translateY(0) } }
+@keyframes thinking  { 0%,80%,100% { transform:scale(0) } 40% { transform:scale(1) } }
+@keyframes bgPulse   { 0%,100% { transform:scale(1.05) } 50% { transform:scale(1.1) } }
+
+.anim-fadeIn  { animation: fadeIn .5s ease-out both; }
+.anim-slideUp { animation: slideUp .8s ease-out both; }
+.anim-bgPulse { animation: bgPulse 20s ease-in-out infinite; }
+
+.thinking-dot { animation: thinking 1.4s infinite ease-in-out both; }
+.thinking-dot:nth-child(1) { animation-delay:-.32s; }
+.thinking-dot:nth-child(2) { animation-delay:-.16s; }
+
+.paper-ivory {
+  background-color: #fdfbf7;
+  background-image: url("data:image/svg+xml,%3Csvg width='4' height='4' viewBox='0 0 4 4' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 3h1v1H1V3zm2-2h1v1H3V1z' fill='%23d4c5b0' fill-opacity='0.4' fill-rule='evenodd'/%3E%3C/svg%3E");
+}
+.paper-ice {
+  background-color: #f8fafc;
+  background-image: url("data:image/svg+xml,%3Csvg width='4' height='4' viewBox='0 0 4 4' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h4v4H0V0zm2 2h2v2H2V2z' fill='%23e2e8f0' fill-opacity='0.4' fill-rule='evenodd'/%3E%3C/svg%3E");
+}
+.paper-sand {
+  background-color: #f0e6d2;
+  background-image: url("data:image/svg+xml,%3Csvg width='4' height='4' viewBox='0 0 4 4' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 3h1v1H1V3zm2-2h1v1H3V1z' fill='%23c2b090' fill-opacity='0.3' fill-rule='evenodd'/%3E%3C/svg%3E");
+}
+.stone-dark {
+  background-color: #1a1a1a;
+  background-image: url("data:image/svg+xml,%3Csvg width='4' height='4' viewBox='0 0 4 4' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 3h1v1H1V3zm2-2h1v1H3V1z' fill='%23333' fill-opacity='0.4' fill-rule='evenodd'/%3E%3C/svg%3E");
+}
+.prytaneum-black {
+  background-color: #0a0a0a;
+  background-image: url("data:image/svg+xml,%3Csvg width='2' height='2' viewBox='0 0 2 2' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h1v1H0V0zm1 1h1v1H1V1z' fill='%23111' fill-opacity='1'/%3E%3C/svg%3E");
+}
+
+.flip-scene {
+  perspective: 1000px;
+  width: 200px;
+  height: 340px;
+}
+@media (min-width: 480px) {
+  .flip-scene { width: 220px; height: 370px; }
+}
+@media (min-width: 768px) {
+  .flip-scene { width: 240px; height: 400px; }
+}
+
+.flip-card {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.7s;
+  transform-style: preserve-3d;
+}
+.flip-scene.flipped .flip-card { transform: rotateY(180deg); }
+.flip-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.flip-back { transform: rotateY(180deg); }
+
+.label-shadow {
+  box-shadow: 0 20px 25px -5px rgba(0,0,0,.2), 0 10px 10px -5px rgba(0,0,0,.1);
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #f1f1f1; }
+::-webkit-scrollbar-thumb { background: #BFA872; border-radius: 3px; }
+
+/* ── MOSAIC RESPONSIVE ── */
+.mosaic-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-auto-rows: 200px;
+  gap: 12px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+@media (min-width: 640px) {
+  .mosaic-grid {
+    grid-template-columns: repeat(2, 1fr);
+    grid-auto-rows: 220px;
+  }
+}
+@media (min-width: 1024px) {
+  .mosaic-grid {
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(2, 250px);
+  }
+  .mosaic-tile-0 { grid-column: span 2; grid-row: span 2; }
+  .mosaic-tile-1 { grid-column: span 2; grid-row: span 1; }
+  .mosaic-tile-2 { grid-column: span 1; grid-row: span 1; }
+  .mosaic-tile-3 { grid-column: span 1; grid-row: span 1; }
+}
+@media (max-width: 1023px) {
+  .mosaic-tile-0,
+  .mosaic-tile-1,
+  .mosaic-tile-2,
+  .mosaic-tile-3 {
+    grid-column: span 1;
+    grid-row: span 1;
+  }
+}
+@media (min-width: 640px) and (max-width: 1023px) {
+  .mosaic-tile-0 { grid-column: span 2; }
+}
+
+/* ── SECTION RESPONSIVE ── */
+.section-hero-title { font-size: clamp(36px, 8vw, 64px); }
+.section-flex-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 48px;
+}
+.section-flex-col {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+/* ── BOOKING MODAL ── */
+.booking-layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 48px;
+}
+.booking-left { flex: 1 1 300px; min-width: 0; }
+.booking-right { flex: 1 1 320px; min-width: 0; }
+
+/* ── AGRITURISMO ── */
+.apt-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 32px;
+  align-items: center;
+}
+.apt-row-reverse { flex-direction: row-reverse; }
+@media (max-width: 767px) {
+  .apt-row, .apt-row-reverse { flex-direction: column !important; }
+}
+.apt-image-wrap { flex: 0 1 420px; min-width: 260px; }
+.apt-text-wrap  { flex: 1 1 280px; min-width: 0; }
+
+/* ── WINE CARDS ── */
+.wine-cards-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  justify-content: center;
+  align-items: flex-end;
+  margin-bottom: 80px;
+}
+
+/* ── SOMMELIER INPUT ── */
+.sommelier-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+}
+.sommelier-input {
+  flex: 1 1 260px;
+  min-width: 0;
+  max-width: 600px;
+}
+
+/* ── VISITE ── */
+.visite-layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 48px;
+}
+.visite-timeline { flex: 1 1 320px; min-width: 0; }
+.visite-infobox  { flex: 0 1 280px; min-width: 0; width: 100%; }
+@media (min-width: 900px) {
+  .visite-infobox { width: 280px; }
+}
+
+/* ── ADOZIONE CARD ── */
+.adozione-card {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 32px;
+  align-items: flex-start;
+}
+.adozione-icon { flex: 0 0 auto; display: flex; justify-content: center; width: 100%; }
+@media (min-width: 640px) {
+  .adozione-icon { width: auto; }
+}
+
+/* ── TREKKING GRID ── */
+.trekking-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+@media (min-width: 640px) {
+  .trekking-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ── 4 CALICI GRID ── */
+.calici-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+@media (min-width: 640px) {
+  .calici-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* ── STORIA ── */
+.storia-content { max-width: 800px; margin: 0 auto; padding: 0 16px; }
+
+/* ── NAVBAR ── */
+.navbar-inner {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  position: relative;
+}
+.navbar-logo {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+@media (max-width: 480px) {
+  .navbar-logo-text { display: none; }
+}
+
+/* ── LANDING ── */
+.landing-title { font-size: clamp(40px, 10vw, 100px); }
+
+/* ── SERVICES GRID ── */
+.services-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  justify-content: center;
+  text-align: center;
+}
+
+/* ── WINE DETAIL ── */
+.wine-detail-layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 48px;
+  align-items: stretch;
+}
+.wine-detail-card  { flex: 0 0 auto; width: 100%; max-width: 280px; margin: 0 auto; }
+.wine-detail-content { flex: 1 1 280px; min-width: 0; }
+
+/* ── TIMELINE ── */
+.timeline-wrap {
+  border-left: 1px solid rgba(191,168,114,.4);
+  margin-left: 16px;
+  padding-left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+}
+
+/* ── TOUCH: prevent double-tap zoom on buttons ── */
+button { touch-action: manipulation; }
+
+/* ── STORIA SPARC BOX ── */
+.sparc-box {
+  background: #fafaf9;
+  padding: 32px 24px;
+  text-align: center;
+  border: 1px solid #e7e5e4;
+  position: relative;
+}
+@media (min-width: 640px) {
+  .sparc-box { padding: 48px 40px; }
+}
+`;
+
+if (!document.getElementById('maso-sparc-styles')) {
+  const style = document.createElement('style');
+  style.id = 'maso-sparc-styles';
+  style.textContent = GLOBAL_CSS;
+  document.head.appendChild(style);
+} else {
+  document.getElementById('maso-sparc-styles').textContent = GLOBAL_CSS;
+}
+
+/* ─────────────────────────────────────────────
+   HOOK: viewport width
+───────────────────────────────────────────────*/
+const useWindowWidth = () => {
+  const [width, setWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
+  useEffect(() => {
+    const handler = () => setWidth(window.innerWidth);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
+  return width;
+};
+
+/* ─────────────────────────────────────────────
+   DATI
+───────────────────────────────────────────────*/
+const wineDatabase = {
+  alba: {
+    name: 'ALBA', type: 'Trento DOC', price: '25 €', color: '#a38f60',
+    quote: '"L\'energia verticale del mattino. Freschezza e purezza nel calice."',
+    description: `<p>È lo spumante più fresco e immediato della casa. Nasce dallo Chardonnay di Pressano, ma esprime il lato più luminoso e dinamico del territorio.</p><p>Brut teso e fragrante, richiama agrumi, fiori bianchi e crosta di pane delicata. La bollicina è fine, il sorso slanciato, pensato per accompagnare aperitivi e momenti conviviali con eleganza e leggerezza.</p><p>È la luce dell'inizio, la promessa della giornata.</p>`,
+    specs: [{ label:'Uvaggio', value:'Chardonnay' },{ label:'Zona', value:'Pressano' },{ label:'Affinamento', value:'Sui lieviti' },{ label:'Temp. Servizio', value:'6 – 8 °C' }]
+  },
+  zenit: {
+    name: 'ZENIT', type: 'Müller Thurgau', price: '15 €', color: '#64748b',
+    quote: '"La precisione aromatica assoluta della montagna a mezzogiorno."',
+    description: `<p>Prodotto a Ville di Giovo, in Val di Cembra, da vigneti ad alta quota, ZENIT è vinificato <strong>esclusivamente in acciaio</strong> per preservare integrità e verticalità.</p><p>Profumi netti di erbe alpine, agrumi, fiori di campo. In bocca è diretto, minerale, vibrante.</p><p>Un bianco d'annata essenziale e autentico.</p>`,
+    specs: [{ label:'Uvaggio', value:'Müller Thurgau' },{ label:'Zona', value:'Ville di Giovo (Cembra)' },{ label:'Vinificazione', value:'100% Acciaio' },{ label:'Temp. Servizio', value:'8 – 10 °C' }]
+  },
+  vespro: {
+    name: 'VESPRO', type: 'Nosiola', price: '22 €', color: '#b45309',
+    quote: '"L\'ora d\'oro. La morbidezza della tradizione che accoglie la sera."',
+    description: `<p>Da un ettaro di Nosiola a Pressano nasce un bianco identitario, che unisce rispetto per la storia e sensibilità contemporanea.</p><p>La vinificazione prevede un <strong>breve passaggio in legno</strong>, sufficiente ad arrotondare il sorso senza coprire la delicatezza varietale. Emergono note di frutta a polpa bianca, mandorla e leggere sfumature speziate.</p><p>È un vino di equilibrio: fresco ma avvolgente, tradizionale ma attuale.</p>`,
+    specs: [{ label:'Uvaggio', value:'Nosiola 100%' },{ label:'Zona', value:'Pressano (1 Ettaro)' },{ label:'Affinamento', value:'Breve in legno' },{ label:'Temp. Servizio', value:'10 – 12 °C' }]
+  },
+  crepuscolo: {
+    name: 'CREPUSCOLO', type: 'Pinot Nero Riserva', price: '35 €', color: '#8a3324',
+    quote: '"L\'eleganza del Pinot Nero nel mistero delle prime ombre."',
+    description: `<p>Dalle vigne di Ville di Giovo nasce un Pinot Nero di montagna, affinato <strong>3 anni in barriques</strong>.</p><p>Le escursioni termiche della Val di Cembra donano tensione e finezza aromatica; l'affinamento in legno scolpisce struttura e profondità. Profumi di piccoli frutti rossi, spezie dolci e leggere note tostate.</p><p>È il vino della sera, della riflessione, della conversazione lenta.</p>`,
+    specs: [{ label:'Uvaggio', value:'Pinot Nero' },{ label:'Zona', value:'Ville di Giovo' },{ label:'Affinamento', value:'3 anni in Barriques' },{ label:'Temp. Servizio', value:'16 – 18 °C' }]
+  },
+  prytaneum: {
+    name: 'PRYTANEUM', type: 'Trento DOC Riserva Extra Brut', price: '80 €', color: '#c5a059',
+    quote: '"Il centro pulsante, il focolare che non si spegne mai."',
+    description: `<p>PRYTANEUM è la sintesi di tutto il ciclo. Base Chardonnay di Pressano a pergola trentina, è il vino di punta dell'azienda: una <strong>Trento DOC Riserva Extra Brut</strong> che custodisce la luce per anni prima di svelarsi.</p><p>È struttura e tensione, profondità e precisione. È oro puro, tempo e saggezza. Uno spumante che nasce per durare, capace di unire freschezza verticale e complessità evolutiva in un sorso pieno, vibrante, persistente.</p>`,
+    specs: [{ label:'Uvaggio', value:'Chardonnay (Pergola)' },{ label:'Zona', value:'Pressano' },{ label:'Tipologia', value:'Riserva Extra Brut' },{ label:'Longevità', value:'Oltre 10 anni' }]
+  },
+};
+
+const sommelierRules = {
+  alba: { keywords:['aperitivo','crudo','sushi','sashimi','fritto','frittura','antipasto','salumi','affettati','leggero','iniziare','fresco','pizza','pesce','stuzzichini','tartine','snack','tramonto','compagnia','amici','mozzarella','burrata','prosciutto'], reason:"Per iniziare al meglio, per un aperitivo o per accompagnare piatti leggeri e crudi, la freschezza e la bollicina tesa di ALBA sono l'abbinamento ideale." },
+  zenit: { keywords:['verdure','verdura','asparagi','speziato','asiatico','erbe','caprino','lago','aromatico','insalata','vegetariano','vegano','delicato','zucchine','minestrone','vellutata','trota','salmerino','curry','piccante','fusion','orientale'], reason:"I profumi di erbe alpine di ZENIT esaltano perfettamente piatti aromatici, verdure, pesce delicato e formaggi freschi." },
+  vespro: { keywords:['pasta','spaghetti','maccheroni','carne bianca','pollo','tacchino','forno','funghi','porcini','canederli','primo','tradizione','risotto','zuppa','maiale','vitello','baccalà','formaggio dolce','pranzo','pesce al forno'], reason:"La morbidezza e la leggera speziatura della Nosiola VESPRO abbracciano a meraviglia primi piatti, carni bianche e sapori legati alla terra." },
+  crepuscolo: { keywords:['carne','rossa','bistecca','fiorentina','arrosto','selvaggina','cinghiale','tartufo','stagionato','grigliata','tagliata','barbecue','bbq','ragù','brasato','cervo','capriolo','hamburger','costata','formaggio forte','meditazione','sera','caminetto','inverno','autunno'], reason:"Per carni rosse, arrosti o piatti dal sapore intenso, l'eleganza e il tannino setoso del Pinot Nero CREPUSCOLO sono imprescindibili." },
+  prytaneum: { keywords:['crostacei','aragosta','ostriche','caviale','speciale','anniversario','festa','tutto pasto','complesso','importante','regalo','celebrare','astice','scampi','capesante','brindisi','crudité','gran crudo','ricorrenza','matrimonio'], reason:"Di fronte a ingredienti nobili o a un momento davvero speciale, la struttura maestosa di PRYTANEUM domina la scena con eleganza assoluta." },
+};
+
+const apartments = [
+  { id:'gelso',  name:'Stanza del Gelso',      beds:'2 Posti Letto', size:'35 mq', price:'120 €', description:'Intima e luminosa, questa stanza affaccia sul vecchio gelso secolare del cortile interno. Un richiamo alle antiche tradizioni contadine, con pavimenti in legno di larice spazzolato e tessuti in lino naturale.', image:'https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?auto=format&fit=crop&q=80', gallery:[] },
+  { id:'pietra', name:'Rifugio in Pietra',      beds:'4 Posti Letto', size:'55 mq', price:'160 €', description:'Le pareti in siltite rossa originale a vista raccontano la storia del maso e del terroir di Pressano. Uno spazio generoso, dotato di zona living separata, ideale per chi cerca respiro e frescura naturale.', image:'https://images.unsplash.com/photo-1505693314120-0d443867891c?auto=format&fit=crop&q=80', gallery:[] },
+  { id:'vento',  name:'Loggia del Vento',       beds:'2 Posti Letto', size:'40 mq', price:'140 €', description:"Prende il nome dall'Ora del Garda, la brezza che accarezza i nostri vigneti nel pomeriggio. Dispone di un intimo balcone privato in legno, perfetto per degustare un calice di Vespro al tramonto.", image:'https://images.unsplash.com/photo-1502005097973-6a7082348e28?auto=format&fit=crop&q=80', gallery:[] },
+  { id:'stelle', name:'Soffitta delle Stelle',  beds:'2 Posti Letto (Suite)', size:'45 mq', price:'180 €', description:'Il nido più romantico. Sotto il tetto spiovente restaurato con travi a vista, piccoli lucernari si aprono sul cielo notturno. Completa di vasca classica in camera per momenti di puro relax dopo la vigna.', image:'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&q=80', gallery:[] },
+];
+
+const activitiesDB = {
+  luce:      { id:'luce',     title:'Il Ciclo della Luce',    subtitle:'Cantina & Vigneto',         price:30,  description:'Visita al vigneto, alla barriccaia e degustazione guidata dei 4 calici con prodotti tipici locali.', duration:'Circa 2 ore', type:'persona', minGuests:1 },
+  adozione:  { id:'adozione', title:'Adotta un Filare',       subtitle:'Progetto Vigna',             price:150, description:'Adozione di un filare di Müller Thurgau per una stagione. Include targhetta col nome, 6 bottiglie personalizzate e aggiornamenti mensili.', duration:'Annuale', type:'totale', isFixed:true, minGuests:1 },
+  trekking1: { id:'trekking1',title:'Trekking: Territorio',   subtitle:'Passeggiata & Degustazione', price:35,  description:'Camminata guidata al tramonto e degustazione dei vini più legati al terroir: la Nosiola e lo spumante Alba.', duration:'60/90 min', type:'persona', minGuests:2 },
+  trekking2: { id:'trekking2',title:'Trekking: Premium',      subtitle:'Passeggiata & Degustazione', price:55,  description:'Camminata guidata al tramonto e degustazione di vini premium a scelta o la nostra migliore selezione.', duration:'60/90 min', type:'persona', minGuests:4 },
+  cieca:     { id:'cieca',    title:'Degustazione Cieca',     subtitle:'Esperienza Sensoriale',      price:25,  description:'Lasciati guidare dai sensi. Degustazione bendati per scoprire i profumi del territorio in modo inedito.', duration:'60 min', type:'persona', minGuests:1 },
+};
+
+/* ─────────────────────────────────────────────
+   SHARED HELPERS
+───────────────────────────────────────────────*/
+const getDaysInMonth    = (y, m) => new Date(y, m + 1, 0).getDate();
+const getFirstDayOfMonth = (y, m) => { const d = new Date(y, m, 1).getDay(); return d === 0 ? 6 : d - 1; };
+
+/* ─────────────────────────────────────────────
+   LOGO
+───────────────────────────────────────────────*/
+const MasoSparcLogo = ({ style = {}, color = 'currentColor' }) => (
+  <svg viewBox="0 0 120 100" style={{ fill: 'none', ...style }} xmlns="http://www.w3.org/2000/svg">
+    <path d="M20 50L60 30L100 50" stroke={color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M35 50H85" stroke={color} strokeWidth="1" strokeDasharray="2 2" opacity="0.5"/>
+    <circle cx="60" cy="15" r="2" fill={color}/>
+    <circle cx="48" cy="22" r="1.5" fill={color} opacity="0.8"/>
+    <circle cx="72" cy="22" r="1.5" fill={color} opacity="0.8"/>
+    <circle cx="40" cy="35" r="1" fill={color} opacity="0.6"/>
+    <circle cx="80" cy="35" r="1" fill={color} opacity="0.6"/>
+  </svg>
+);
+
+/* ─────────────────────────────────────────────
+   WINE ICON (tiny SVG per detail page)
+───────────────────────────────────────────────*/
+const WineIcon = ({ wineId }) => {
+  const icons = {
+    alba: <svg width="80" height="80" viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="50" cy="65" r="20"/><path d="M10 65H90"/><path d="M50 35V20M30 45L20 35M70 45L80 35"/></svg>,
+    zenit: <svg width="80" height="80" viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="50" cy="50" r="16"/><path d="M50 24V12M50 76V88M24 50H12M88 50H76M32 32L22 22M68 68L78 78M32 68L22 78M68 32L78 22"/></svg>,
+    vespro: <svg width="80" height="80" viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M30 65A20 20 0 0 1 70 65"/><path d="M10 65H90"/><path d="M50 45V30M35 50L22 38M65 50L78 38"/></svg>,
+    crepuscolo: <svg width="80" height="80" viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M45 30A22 22 0 1 0 72 55A26 26 0 0 1 45 30Z"/><circle cx="25" cy="40" r="1.5" fill="currentColor"/><circle cx="80" cy="30" r="1" fill="currentColor"/><circle cx="55" cy="75" r="1.5" fill="currentColor"/></svg>,
+    prytaneum: <svg width="80" height="80" viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M50 20Q75 55 50 85Q25 55 50 20Z"/><circle cx="50" cy="65" r="3.5" fill="currentColor"/><path d="M50 35V55"/><circle cx="50" cy="50" r="28" strokeDasharray="2 4" strokeWidth=".5"/></svg>,
+  };
+  return icons[wineId] || null;
+};
+
+/* ─────────────────────────────────────────────
+   WINE CARD (flip)
+───────────────────────────────────────────────*/
+const WineCard = ({ wineId, label, frontContent, backQuote, onBuy }) => {
+  const [flipped, setFlipped] = useState(false);
+  const wine = wineDatabase[wineId];
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
+      <div style={{ marginBottom:12, textAlign:'center' }}>
+        <span className="f-montserrat" style={{ color:wine.color, fontSize:10, textTransform:'uppercase', letterSpacing:'0.25em', fontWeight:700 }}>{label}</span>
+      </div>
+      <div
+        className={`flip-scene${flipped ? ' flipped' : ''}`}
+        style={{ cursor:'pointer' }}
+        onClick={e => { if (e.target.tagName !== 'BUTTON') setFlipped(f => !f); }}
+      >
+        <div className="flip-card">
+          {/* FRONT */}
+          <div className="flip-face label-shadow" style={{ border:'1px solid #e5e7eb' }}>
+            {frontContent}
+          </div>
+          {/* BACK */}
+          <div className="flip-face flip-back label-shadow" style={{ border:'1px solid #e5e7eb', background:'#fdfbf7', display:'flex', alignItems:'center', justifyContent:'center' }}>
+            <div style={{ padding:24, textAlign:'center' }}>
+              <h4 className="f-cinzel" style={{ fontWeight:700, textTransform:'uppercase', letterSpacing:'0.2em', marginBottom:12, fontSize:13, color:'#1a1a1a' }}>{wine.name}</h4>
+              <p className="f-cormorant" style={{ fontSize:14, lineHeight:1.7, fontStyle:'italic', color:'#555', marginBottom:20 }}>{backQuote}</p>
+              <button
+                onClick={e => { e.stopPropagation(); onBuy(wineId); }}
+                style={{ padding:'8px 20px', border:`1px solid ${wine.color}`, background:'transparent', color:wine.color, fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.2em', cursor:'pointer' }}
+                onMouseOver={e => { e.currentTarget.style.background = wine.color; e.currentTarget.style.color = '#fff'; }}
+                onMouseOut={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = wine.color; }}
+              >Acquista</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ─────────────────────────────────────────────
+   CALENDAR
+───────────────────────────────────────────────*/
+const Calendar = ({ month, onMonthChange, renderDays }) => {
+  const label = month.toLocaleString('it-IT', { month:'long', year:'numeric' });
+  const days  = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
+
+  return (
+    <div style={{ background:'#fff', border:'1px solid #e7e5e4', padding:'16px', boxShadow:'0 1px 3px rgba(0,0,0,.06)' }}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
+        <button onClick={() => onMonthChange(-1)} style={{ background:'none', border:'none', cursor:'pointer', padding:8, borderRadius:'50%' }}><ChevronLeft size={20} color="#555"/></button>
+        <span className="f-playfair" style={{ fontSize:18, fontWeight:700, color:'#1c1917', textTransform:'capitalize' }}>{label}</span>
+        <button onClick={() => onMonthChange(1)}  style={{ background:'none', border:'none', cursor:'pointer', padding:8, borderRadius:'50%' }}><ChevronRight size={20} color="#555"/></button>
+      </div>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:2, marginBottom:6 }}>
+        {days.map(d => (
+          <div key={d} className="f-montserrat" style={{ textAlign:'center', fontSize:9, textTransform:'uppercase', letterSpacing:'0.15em', color:'#a8a29e', fontWeight:700 }}>{d}</div>
+        ))}
+      </div>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:2 }}>
+        {renderDays()}
+      </div>
+    </div>
+  );
+};
+
+/* ─────────────────────────────────────────────
+   TOAST
+───────────────────────────────────────────────*/
+const Toast = ({ show, message }) => (
+  <div style={{
+    position:'fixed', bottom:24, left:'50%', transform:`translateX(-50%) translateY(${show ? 0 : 32}px)`,
+    background:'#1a1a1a', color:'#fff', padding:'16px 24px', boxShadow:'0 25px 50px rgba(0,0,0,.3)',
+    zIndex:200, display:'flex', alignItems:'center', gap:12, maxWidth:'calc(100vw - 32px)',
+    opacity:show ? 1 : 0, transition:'all .4s ease', pointerEvents:show ? 'auto' : 'none'
+  }}>
+    <svg style={{ color:'#d4af37', flexShrink:0 }} width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+    </svg>
+    <span className="f-montserrat" style={{ fontSize:10, letterSpacing:'0.15em', textTransform:'uppercase', fontWeight:700 }}>{message}</span>
+  </div>
+);
+
+/* ─────────────────────────────────────────────
+   NAVBAR
+───────────────────────────────────────────────*/
+const Navbar = ({ onBack }) => (
+  <nav style={{ position:'fixed', width:'100%', zIndex:40, background:'rgba(255,255,255,.92)', backdropFilter:'blur(12px)', borderBottom:'1px solid #f5f5f4', height:64, display:'flex', alignItems:'center', padding:'0 16px', boxShadow:'0 1px 3px rgba(0,0,0,.05)' }}>
+    <div className="navbar-inner">
+      <button onClick={onBack} style={{ display:'flex', alignItems:'center', gap:6, background:'none', border:'none', cursor:'pointer', fontSize:10, textTransform:'uppercase', letterSpacing:'0.15em', color:'#44403c', fontFamily:'Montserrat,sans-serif', fontWeight:600, flexShrink:0 }}>
+        <ArrowLeft size={16}/> <span style={{ display:'none', ['@media (min-width: 480px)']: { display:'inline' } }}>Torna al Maso</span>
+      </button>
+      <div className="navbar-logo">
+        <MasoSparcLogo style={{ width:28, height:28 }} color="#BFA872"/>
+        <span className="f-playfair navbar-logo-text" style={{ letterSpacing:'0.2em', textTransform:'uppercase', fontSize:13 }}>Maso SPARC</span>
+      </div>
+    </div>
+  </nav>
+);
+
+/* ─────────────────────────────────────────────
+   BOOKING MODAL
+───────────────────────────────────────────────*/
+const BookingModal = ({ apt, onClose, triggerToast }) => {
+  const [month, setMonth]       = useState(new Date());
+  const [checkIn, setCheckIn]   = useState(null);
+  const [checkOut, setCheckOut] = useState(null);
+  const [guests, setGuests]     = useState({ adults:1, teens:0, children:0 });
+
+  const maxGuests = parseInt(apt.beds.match(/\d+/)[0]) || 2;
+  const nights    = (!checkIn || !checkOut) ? 0 : Math.ceil(Math.abs(checkOut - checkIn) / (1000 * 60 * 60 * 24));
+
+  const handleDay = d => {
+    const sel = new Date(month.getFullYear(), month.getMonth(), d);
+    sel.setHours(0, 0, 0, 0);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    if (sel < today) return;
+    if (!checkIn || (checkIn && checkOut)) { setCheckIn(sel); setCheckOut(null); }
+    else if (sel > checkIn) setCheckOut(sel);
+    else { setCheckIn(sel); setCheckOut(null); }
+  };
+
+  const updateGuests = (type, delta) => {
+    const total = guests.adults + guests.teens + guests.children;
+    if (delta > 0 && total >= maxGuests) { triggerToast(`Massimo ${maxGuests} persone.`); return; }
+    setGuests(prev => {
+      const v = prev[type] + delta;
+      if (v < 0) return prev;
+      if (type === 'adults' && v < 1) return prev;
+      return { ...prev, [type]: v };
+    });
+  };
+
+  const renderDays = () => {
+    const y = month.getFullYear(), m = month.getMonth();
+    const dim = getDaysInMonth(y, m), offset = getFirstDayOfMonth(y, m);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const cells = [];
+    for (let i = 0; i < offset; i++) cells.push(<div key={`b${i}`}/>);
+    for (let d = 1; d <= dim; d++) {
+      const date = new Date(y, m, d); date.setHours(0, 0, 0, 0);
+      const past    = date < today;
+      const selIn   = checkIn  && date.getTime() === checkIn.getTime();
+      const selOut  = checkOut && date.getTime() === checkOut.getTime();
+      const between = checkIn && checkOut && date > checkIn && date < checkOut;
+      let bg = 'transparent', color = '#374151', cursor = 'pointer', fontWeight = 'normal';
+      if (past)            { color = '#d1d5db'; cursor = 'not-allowed'; }
+      else if (selIn || selOut) { bg = '#1a1a1a'; color = '#fff'; fontWeight = '700'; }
+      else if (between)    { bg = '#e7e5e4'; }
+      cells.push(
+        <div key={d} onClick={() => !past && handleDay(d)}
+          style={{ height:36, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, background:bg, color, cursor, fontWeight, borderRadius:2, fontFamily:'Montserrat,sans-serif', transition:'background .15s' }}
+          onMouseOver={e => { if (!past && !selIn && !selOut) e.currentTarget.style.background = '#f5f5f4'; }}
+          onMouseOut={e  => { if (!past && !selIn && !selOut) e.currentTarget.style.background  = between ? '#e7e5e4' : 'transparent'; }}
+        >{d}</div>
+      );
+    }
+    return cells;
+  };
+
+  const fmt = d => d ? d.toLocaleDateString('it-IT') : null;
+
+  return (
+    <div className="anim-fadeIn" style={{ position:'fixed', inset:0, zIndex:70, background:'#FDFCFB', overflowY:'auto' }}>
+      {/* Header */}
+      <div style={{ position:'sticky', top:0, padding:'12px 16px', display:'flex', justifyContent:'space-between', alignItems:'center', background:'rgba(253,252,251,.95)', backdropFilter:'blur(12px)', borderBottom:'1px solid #e7e5e4', zIndex:10 }}>
+        <button onClick={onClose} style={{ display:'flex', alignItems:'center', gap:6, background:'none', border:'none', cursor:'pointer', color:'#78716c', fontFamily:'Montserrat,sans-serif', fontSize:10, textTransform:'uppercase', letterSpacing:'0.15em', fontWeight:700 }}>
+          <X size={18}/> Annulla
+        </button>
+        <span className="f-cinzel" style={{ fontSize:12, letterSpacing:'0.2em', textTransform:'uppercase', fontWeight:700 }}>Richiesta Soggiorno</span>
+        <div style={{ width:64 }}/>
+      </div>
+
+      <div style={{ maxWidth:1100, margin:'0 auto', padding:'24px 16px 40px' }} className="booking-layout">
+        {/* Left */}
+        <div className="booking-left">
+          <div style={{ aspectRatio:'4/3', marginBottom:20, boxShadow:'0 4px 20px rgba(0,0,0,.12)', overflow:'hidden', position:'relative' }}>
+            <img src={apt.image} alt={apt.name} style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
+            <div style={{ position:'absolute', top:12, left:12, background:'rgba(255,255,255,.9)', padding:'4px 10px', fontSize:9, fontFamily:'Montserrat,sans-serif', textTransform:'uppercase', letterSpacing:'0.2em', fontWeight:700, color:'#292524' }}>{apt.beds}</div>
+          </div>
+          <h2 className="f-playfair" style={{ fontSize:28, fontWeight:700, margin:'0 0 6px' }}>{apt.name}</h2>
+          <p className="f-cormorant" style={{ fontSize:17, color:'#78716c', fontStyle:'italic', margin:'0 0 20px' }}>Un rifugio d'eleganza contadina.</p>
+          <div style={{ borderTop:'1px solid #e7e5e4', paddingTop:20, display:'flex', flexDirection:'column', gap:12 }}>
+            <div style={{ display:'flex', justifyContent:'space-between' }}>
+              <span className="f-montserrat" style={{ fontSize:10, textTransform:'uppercase', letterSpacing:'0.15em', color:'#78716c' }}>Tariffa base per notte</span>
+              <span className="f-playfair" style={{ fontSize:20, fontWeight:700 }}>{apt.price}</span>
+            </div>
+            <div style={{ display:'flex', justifyContent:'space-between' }}>
+              <span className="f-montserrat" style={{ fontSize:10, textTransform:'uppercase', letterSpacing:'0.15em', color:'#78716c' }}>Capacità</span>
+              <span className="f-playfair" style={{ fontSize:18 }}>{maxGuests} Persone</span>
+            </div>
+            <div style={{ background:'#fafaf9', padding:14, borderLeft:'2px solid #BFA872' }}>
+              <p className="f-montserrat" style={{ fontSize:10, lineHeight:1.7, color:'#57534e', margin:0 }}>Colazione artigianale a Km0 e visita guidata alla cantina sempre incluse.</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Right */}
+        <div className="booking-right section-flex-col">
+          {/* Calendar */}
+          <div>
+            <h3 className="f-cinzel" style={{ fontSize:14, borderBottom:'1px solid #e7e5e4', paddingBottom:8, marginBottom:20, display:'flex', alignItems:'center', gap:8 }}>
+              <CalendarIcon size={18} color="#BFA872"/> Seleziona le Date
+            </h3>
+            <Calendar month={month} onMonthChange={d => setMonth(new Date(month.getFullYear(), month.getMonth() + d, 1))} renderDays={renderDays}/>
+            <div style={{ marginTop:12, display:'flex', gap:12 }}>
+              {[['Check-in', fmt(checkIn)], ['Check-out', fmt(checkOut)]].map(([lbl, val]) => (
+                <div key={lbl} style={{ flex:1 }}>
+                  <span className="f-montserrat" style={{ display:'block', fontSize:9, textTransform:'uppercase', letterSpacing:'0.15em', color:'#a8a29e', marginBottom:4 }}>{lbl}</span>
+                  <div className="f-playfair" style={{ fontSize:15, color:'#1c1917', background:'#fafaf9', padding:'8px 10px', border:'1px solid #f5f5f4', minHeight:40 }}>
+                    {val || <span style={{ color:'#d6d3d1', fontStyle:'italic' }}>Seleziona</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Guests */}
+          <div>
+            <h3 className="f-cinzel" style={{ fontSize:14, borderBottom:'1px solid #e7e5e4', paddingBottom:8, marginBottom:20, display:'flex', alignItems:'center', gap:8 }}>
+              <Users size={18} color="#BFA872"/> Ospiti
+            </h3>
+            <div style={{ background:'#fff', border:'1px solid #e7e5e4', padding:'16px 20px', display:'flex', flexDirection:'column', gap:20 }}>
+              {[['adults','Adulti','Oltre i 18 anni',1], ['teens','Ragazzi','Da 12 a 17 anni',0], ['children','Bambini','Da 0 a 11 anni',0]].map(([key, lbl, sub]) => (
+                <div key={key} style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                  <div>
+                    <div className="f-playfair" style={{ fontSize:16 }}>{lbl}</div>
+                    <div className="f-montserrat" style={{ fontSize:10, color:'#78716c' }}>{sub}</div>
+                  </div>
+                  <div style={{ display:'flex', alignItems:'center', border:'1px solid #e7e5e4' }}>
+                    {['-', guests[key], '+'].map((v, i) => (
+                      <button key={i} onClick={() => i === 0 ? updateGuests(key, -1) : i === 2 ? updateGuests(key, 1) : null}
+                        style={{ padding:'8px 14px', background:'none', border:'none', cursor:typeof v === 'number' ? 'default' : 'pointer', fontWeight:typeof v === 'number' ? 700 : 'normal', fontSize:typeof v === 'number' ? 14 : 18, color:'#374151', minWidth:36 }}>
+                        {v}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Summary */}
+          <div style={{ background:'#1a1a1a', color:'#fff', padding:24, boxShadow:'0 25px 50px rgba(0,0,0,.2)' }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-end', marginBottom:20 }}>
+              <div>
+                <p className="f-montserrat" style={{ fontSize:10, textTransform:'uppercase', letterSpacing:'0.2em', color:'#BFA872', marginBottom:4, fontWeight:700 }}>Totale Soggiorno</p>
+                <p className="f-cormorant" style={{ fontSize:16, opacity:.8, fontStyle:'italic' }}>{nights} notti × {guests.adults + guests.teens + guests.children} ospiti</p>
+              </div>
+              <p className="f-playfair" style={{ fontSize:30, fontWeight:700 }}>
+                {nights > 0 ? nights * parseInt(apt.price) + '€' : '-- €'}
+              </p>
+            </div>
+            <button
+              onClick={() => { if (!checkIn || !checkOut) { triggerToast('Seleziona le date sul calendario.'); } else { triggerToast('Richiesta inviata! Ti contatteremo a breve.'); setTimeout(onClose, 2000); } }}
+              style={{ width:'100%', padding:14, background:(!checkIn || !checkOut) ? '#292524' : '#BFA872', color:(!checkIn || !checkOut) ? '#78716c' : '#1a1a1a', border:'none', cursor:(!checkIn || !checkOut) ? 'not-allowed' : 'pointer', fontSize:11, textTransform:'uppercase', letterSpacing:'0.2em', fontWeight:700, display:'flex', justifyContent:'center', alignItems:'center', gap:8, transition:'background .3s' }}
+              onMouseOver={e => { if (checkIn && checkOut) e.currentTarget.style.background = '#fff'; }}
+              onMouseOut={e  => { if (checkIn && checkOut) e.currentTarget.style.background  = '#BFA872'; }}
+            ><Check size={16}/> Conferma Richiesta</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ─────────────────────────────────────────────
+   ACTIVITY MODAL
+───────────────────────────────────────────────*/
+const ActivityModal = ({ activity, onClose, triggerToast }) => {
+  const [month, setMonth]     = useState(new Date());
+  const [actDate, setActDate] = useState(null);
+  const [guests, setGuests]   = useState({ adults:activity.minGuests || 1, children:0 });
+
+  const handleDay = d => {
+    const sel = new Date(month.getFullYear(), month.getMonth(), d);
+    sel.setHours(0, 0, 0, 0);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    if (sel < today) return;
+    if (activity.id === 'adozione') {
+      const y = sel.getFullYear();
+      if (sel < new Date(y, 5, 1) || sel > new Date(y, 7, 1)) return;
+    }
+    setActDate(sel);
+  };
+
+  const updateGuests = (type, delta) => {
+    const total = guests.adults + guests.children;
+    if (delta > 0 && total >= 12) { triggerToast('Massimo 12 persone.'); return; }
+    setGuests(prev => { const v = prev[type] + delta; if (v < 0) return prev; if (type === 'adults' && v < (activity.minGuests || 1)) return prev; return { ...prev, [type]:v }; });
+  };
+
+  const renderDays = () => {
+    const y = month.getFullYear(), m = month.getMonth();
+    const dim = getDaysInMonth(y, m), offset = getFirstDayOfMonth(y, m);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const cells = [];
+    for (let i = 0; i < offset; i++) cells.push(<div key={`b${i}`}/>);
+    for (let d = 1; d <= dim; d++) {
+      const date = new Date(y, m, d); date.setHours(0, 0, 0, 0);
+      let past = date < today;
+      if (activity.id === 'adozione') { const y2 = date.getFullYear(); if (date < new Date(y2, 5, 1) || date > new Date(y2, 7, 1)) past = true; }
+      const sel = actDate && date.getTime() === actDate.getTime();
+      let bg = sel ? '#1a1a1a' : 'transparent', color = past ? '#d1d5db' : sel ? '#fff' : '#374151';
+      cells.push(
+        <div key={d} onClick={() => !past && handleDay(d)}
+          style={{ height:36, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, background:bg, color, cursor:past ? 'not-allowed' : 'pointer', fontWeight:sel ? 700 : 'normal', borderRadius:2, fontFamily:'Montserrat,sans-serif', transition:'background .15s' }}
+          onMouseOver={e => { if (!past && !sel) e.currentTarget.style.background = '#f5f5f4'; }}
+          onMouseOut={e  => { if (!past && !sel) e.currentTarget.style.background  = 'transparent'; }}
+        >{d}</div>
+      );
+    }
+    return cells;
+  };
+
+  const total = activity.isFixed ? activity.price : guests.adults * activity.price;
+
+  return (
+    <div className="anim-fadeIn" style={{ position:'fixed', inset:0, zIndex:70, background:'#FDFCFB', overflowY:'auto' }}>
+      <div style={{ position:'sticky', top:0, padding:'12px 16px', display:'flex', justifyContent:'space-between', alignItems:'center', background:'rgba(253,252,251,.95)', backdropFilter:'blur(12px)', borderBottom:'1px solid #e7e5e4', zIndex:10 }}>
+        <button onClick={onClose} style={{ display:'flex', alignItems:'center', gap:6, background:'none', border:'none', cursor:'pointer', color:'#78716c', fontFamily:'Montserrat,sans-serif', fontSize:10, textTransform:'uppercase', letterSpacing:'0.15em', fontWeight:700 }}>
+          <X size={18}/> Annulla
+        </button>
+        <span className="f-cinzel" style={{ fontSize:12, letterSpacing:'0.2em', textTransform:'uppercase', fontWeight:700 }}>Prenota Esperienza</span>
+        <div style={{ width:64 }}/>
+      </div>
+
+      <div style={{ maxWidth:1100, margin:'0 auto', padding:'24px 16px 40px' }} className="booking-layout">
+        {/* Left */}
+        <div className="booking-left">
+          <span className="f-cinzel" style={{ fontSize:10, letterSpacing:'0.3em', textTransform:'uppercase', color:'#BFA872', display:'block', marginBottom:10 }}>{activity.subtitle}</span>
+          <h2 className="f-playfair" style={{ fontSize:30, fontWeight:700, margin:'0 0 14px' }}>{activity.title}</h2>
+          <p className="f-cormorant" style={{ fontSize:18, color:'#78716c', fontStyle:'italic', lineHeight:1.6, marginBottom:28 }}>{activity.description}</p>
+          <div style={{ borderTop:'1px solid #e7e5e4', paddingTop:20, display:'flex', flexDirection:'column', gap:12 }}>
+            <div style={{ display:'flex', justifyContent:'space-between' }}>
+              <span className="f-montserrat" style={{ fontSize:10, textTransform:'uppercase', letterSpacing:'0.15em', color:'#78716c' }}>Tariffa {activity.type === 'persona' ? 'a persona' : 'totale'}</span>
+              <span className="f-playfair" style={{ fontSize:20, fontWeight:700 }}>{activity.price} €</span>
+            </div>
+            <div style={{ display:'flex', justifyContent:'space-between' }}>
+              <span className="f-montserrat" style={{ fontSize:10, textTransform:'uppercase', letterSpacing:'0.15em', color:'#78716c' }}>Durata</span>
+              <span className="f-playfair" style={{ fontSize:18 }}>{activity.duration}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Right */}
+        <div className="booking-right section-flex-col">
+          <div>
+            <h3 className="f-cinzel" style={{ fontSize:14, borderBottom:'1px solid #e7e5e4', paddingBottom:8, marginBottom:20, display:'flex', alignItems:'center', gap:8 }}>
+              <CalendarIcon size={18} color="#BFA872"/> Seleziona la Data
+            </h3>
+            <Calendar month={month} onMonthChange={d => setMonth(new Date(month.getFullYear(), month.getMonth() + d, 1))} renderDays={renderDays}/>
+            <div style={{ marginTop:12 }}>
+              <span className="f-montserrat" style={{ display:'block', fontSize:9, textTransform:'uppercase', letterSpacing:'0.15em', color:'#a8a29e', marginBottom:4 }}>Data scelta</span>
+              <div className="f-playfair" style={{ fontSize:15, color:'#1c1917', background:'#fafaf9', padding:'8px 10px', border:'1px solid #f5f5f4', minHeight:40 }}>
+                {actDate ? actDate.toLocaleDateString('it-IT', { weekday:'long', year:'numeric', month:'long', day:'numeric' }) : <span style={{ color:'#d6d3d1', fontStyle:'italic' }}>Seleziona data sul calendario</span>}
+              </div>
+            </div>
+          </div>
+
+          {!activity.isFixed && (
+            <div>
+              <h3 className="f-cinzel" style={{ fontSize:14, borderBottom:'1px solid #e7e5e4', paddingBottom:8, marginBottom:20, display:'flex', alignItems:'center', gap:8 }}>
+                <Users size={18} color="#BFA872"/> Ospiti (Max 12)
+              </h3>
+              <div style={{ background:'#fff', border:'1px solid #e7e5e4', padding:'16px 20px', display:'flex', flexDirection:'column', gap:20 }}>
+                {[['adults','Adulti','Percorso completo'], ['children','Ragazzi/Bambini','Solo visita (analcolico incluso)']].map(([key, lbl, sub]) => (
+                  <div key={key} style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                    <div>
+                      <div className="f-playfair" style={{ fontSize:16 }}>{lbl}</div>
+                      <div className="f-montserrat" style={{ fontSize:10, color:'#78716c' }}>{sub}</div>
+                    </div>
+                    <div style={{ display:'flex', alignItems:'center', border:'1px solid #e7e5e4' }}>
+                      {['-', guests[key], '+'].map((v, i) => (
+                        <button key={i} onClick={() => i === 0 ? updateGuests(key, -1) : i === 2 ? updateGuests(key, 1) : null}
+                          style={{ padding:'8px 14px', background:'none', border:'none', cursor:typeof v === 'number' ? 'default' : 'pointer', fontWeight:typeof v === 'number' ? 700 : 'normal', fontSize:typeof v === 'number' ? 14 : 18, color:'#374151', minWidth:36 }}>
+                          {v}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div style={{ background:'#1a1a1a', color:'#fff', padding:24 }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-end', marginBottom:20 }}>
+              <div>
+                <p className="f-montserrat" style={{ fontSize:10, textTransform:'uppercase', letterSpacing:'0.2em', color:'#BFA872', marginBottom:4, fontWeight:700 }}>Totale</p>
+                {!activity.isFixed && <p className="f-cormorant" style={{ fontSize:16, opacity:.8, fontStyle:'italic' }}>{guests.adults} Adulti{guests.children > 0 ? `, ${guests.children} Bambini` : ''}</p>}
+              </div>
+              <p className="f-playfair" style={{ fontSize:30, fontWeight:700 }}>{total} €</p>
+            </div>
+            <button
+              onClick={() => { if (!actDate) { triggerToast('Seleziona la data sul calendario.'); } else { triggerToast('Richiesta inviata! Ti contatteremo a breve.'); setTimeout(onClose, 2000); } }}
+              style={{ width:'100%', padding:14, background:!actDate ? '#292524' : '#BFA872', color:!actDate ? '#78716c' : '#1a1a1a', border:'none', cursor:!actDate ? 'not-allowed' : 'pointer', fontSize:11, textTransform:'uppercase', letterSpacing:'0.2em', fontWeight:700, display:'flex', justifyContent:'center', alignItems:'center', gap:8, transition:'background .3s' }}
+              onMouseOver={e => { if (actDate) e.currentTarget.style.background = '#fff'; }}
+              onMouseOut={e  => { if (actDate) e.currentTarget.style.background  = '#BFA872'; }}
+            ><Check size={16}/> Conferma Prenotazione</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ─────────────────────────────────────────────
+   WINE DETAIL PAGE
+───────────────────────────────────────────────*/
+const WineDetail = ({ wineId, onClose, triggerToast }) => {
+  const wine = wineDatabase[wineId];
+  return (
+    <div className="anim-fadeIn" style={{ position:'fixed', inset:0, zIndex:60, background:'#fdfbf7', overflowY:'auto' }}>
+      <div style={{ position:'sticky', top:0, padding:'12px 16px', display:'flex', justifyContent:'space-between', alignItems:'center', background:'rgba(253,251,247,.9)', backdropFilter:'blur(12px)', borderBottom:'1px solid #e5e7eb', zIndex:10 }}>
+        <button onClick={onClose} style={{ display:'flex', alignItems:'center', gap:6, background:'none', border:'none', cursor:'pointer', color:'#6b7280', fontFamily:'Montserrat,sans-serif', fontSize:10, textTransform:'uppercase', letterSpacing:'0.15em', fontWeight:700 }}>
+          <ArrowLeft size={16}/> Collezione
+        </button>
+        <span className="f-pinyon" style={{ fontSize:24, color:'#ccc' }}>Maso Sparc</span>
+        <div style={{ width:80 }}/>
+      </div>
+
+      <div style={{ maxWidth:1200, margin:'0 auto', padding:'32px 16px' }} className="wine-detail-layout">
+        {/* Card */}
+        <div className="wine-detail-card" style={{ background:'#fff', border:'1px solid #f3f4f6', boxShadow:'0 4px 20px rgba(0,0,0,.08)', padding:8, display:'flex', flexDirection:'column' }}>
+          <div style={{ border:'1px solid #f3f4f6', flex:1, padding:28, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', position:'relative', overflow:'hidden' }}>
+            <div style={{ position:'absolute', inset:0, background:wine.color, opacity:.03 }}/>
+            <div style={{ position:'relative', zIndex:1, width:'100%', display:'flex', flexDirection:'column', alignItems:'center' }}>
+              <div style={{ marginBottom:24, color:wine.color }}>
+                <WineIcon wineId={wineId}/>
+              </div>
+              <div className="f-cinzel" style={{ fontSize:9, letterSpacing:'0.4em', textTransform:'uppercase', color:'#9ca3af', marginBottom:20, paddingBottom:14, borderBottom:'1px solid #e5e7eb', width:64, textAlign:'center' }}>Identità</div>
+              {wine.specs.map((s, i) => (
+                <React.Fragment key={i}>
+                  <div style={{ display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center', width:'100%' }}>
+                    <span className="f-montserrat" style={{ fontSize:8, textTransform:'uppercase', letterSpacing:'0.3em', color:'#9ca3af', marginBottom:4 }}>{s.label}</span>
+                    <span className="f-cormorant" style={{ fontSize:17, color:'#1f2937', fontStyle:'italic' }}>{s.value}</span>
+                  </div>
+                  {i < wine.specs.length - 1 && <div style={{ width:16, height:1, background:'#e5e7eb', margin:'16px 0' }}/>}
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="wine-detail-content" style={{ display:'flex', flexDirection:'column', justifyContent:'center' }}>
+          <h1 className="f-playfair" style={{ fontSize:'clamp(36px, 8vw, 56px)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em', margin:'0 0 8px', color:'#111827' }}>{wine.name}</h1>
+          <h2 className="f-cinzel" style={{ fontSize:14, color:'#6b7280', paddingBottom:20, borderBottom:'1px solid #e5e7eb', letterSpacing:'0.2em', textTransform:'uppercase', margin:'0 0 20px', fontWeight:400 }}>{wine.type}</h2>
+          <p className="f-cormorant" style={{ fontSize:20, fontStyle:'italic', color:'#374151', marginBottom:32, borderLeft:`4px solid ${wine.color}`, paddingLeft:20, lineHeight:1.4 }}>{wine.quote}</p>
+          <div className="f-cormorant" style={{ fontSize:17, color:'#6b7280', lineHeight:1.8, marginBottom:40 }} dangerouslySetInnerHTML={{ __html:wine.description }}/>
+          <div style={{ display:'flex', flexWrap:'wrap', alignItems:'center', justifyContent:'space-between', background:'#fff', padding:24, border:'1px solid #f3f4f6', boxShadow:'0 1px 3px rgba(0,0,0,.06)', gap:20 }}>
+            <div>
+              <p className="f-montserrat" style={{ fontSize:10, color:'#9ca3af', textTransform:'uppercase', letterSpacing:'0.2em', marginBottom:4, fontWeight:700 }}>Prezzo a bottiglia</p>
+              <p className="f-playfair" style={{ fontSize:32, fontWeight:700, color:'#111827' }}>{wine.price}</p>
+            </div>
+            <button
+              onClick={() => triggerToast('PRODOTTO ESAURITO PERCHÈ TROPPO BUONO')}
+              style={{ padding:'14px 32px', background:'#111827', color:'#fff', border:'none', cursor:'pointer', fontSize:11, letterSpacing:'0.2em', textTransform:'uppercase', fontWeight:700, boxShadow:'0 4px 14px rgba(0,0,0,.2)', transition:'background .3s' }}
+              onMouseOver={e => { e.currentTarget.style.background = wine.color; }}
+              onMouseOut={e  => { e.currentTarget.style.background  = '#111827'; }}
+            >Aggiungi al Carrello</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ─────────────────────────────────────────────
+   SECTION: COLLEZIONE
+───────────────────────────────────────────────*/
+const SectionCollezione = ({ triggerToast }) => {
+  const [selectedWine, setSelectedWine]     = useState(null);
+  const [sommelierInput, setSommelierInput] = useState('');
+  const [isThinking, setIsThinking]         = useState(false);
+  const [result, setResult]                 = useState(null);
+  const resultRef = useRef(null);
+
+  const askSommelier = () => {
+    if (!sommelierInput.trim()) return;
+    setResult(null); setIsThinking(true);
+    setTimeout(() => {
+      const lower = sommelierInput.toLowerCase();
+      let best = 'prytaneum', max = 0;
+      for (const [id, data] of Object.entries(sommelierRules)) {
+        let score = 0; data.keywords.forEach(k => { if (lower.includes(k)) score += k.length; });
+        if (score > max) { max = score; best = id; }
+      }
+      const reason = max > 0 ? sommelierRules[best].reason : "Per una richiesta così libera andiamo sul sicuro: l'eccellenza di PRYTANEUM saprà accompagnare il tuo momento con maestria ineguagliabile.";
+      setResult({ wineId:max > 0 ? best : 'prytaneum', reason });
+      setIsThinking(false);
+      setSommelierInput('');
+      setTimeout(() => resultRef.current?.scrollIntoView({ behavior:'smooth', block:'center' }), 100);
+    }, 1500);
+  };
+
+  /* Wine card fronts */
+  const cardFronts = {
+    alba: (
+      <div className="paper-ivory" style={{ position:'absolute', inset:0, border:'1px solid #e5e7eb' }}>
+        <div style={{ position:'absolute', inset:8, border:'1px solid #a38f60', opacity:.4 }}/>
+        <div style={{ position:'relative', zIndex:1, height:'100%', display:'flex', flexDirection:'column', justifyContent:'space-between', padding:'28px 14px', textAlign:'center' }}>
+          <div>
+            <svg width="50" height="34" viewBox="0 0 100 60"><g fill="#a38f60"><circle cx="50" cy="15" r="3"/><circle cx="50" cy="5" r="2" opacity=".6"/><circle cx="35" cy="20" r="2.5"/><circle cx="28" cy="12" r="1.5" opacity=".6"/><circle cx="65" cy="20" r="2.5"/><circle cx="72" cy="12" r="1.5" opacity=".6"/></g><path d="M10 50L50 25L90 50" stroke="#a38f60" strokeWidth="2" fill="none"/></svg>
+            <p className="f-pinyon" style={{ fontSize:18, color:'#6b7280', margin:'0 0 -4px', transform:'rotate(-2deg)' }}>Maso</p>
+            <h1 className="f-playfair" style={{ fontWeight:700, fontSize:20, color:'#a38f60', textTransform:'uppercase', letterSpacing:'0.1em', margin:'0 0 6px' }}>SPARC</h1>
+            <h2 className="f-cinzel" style={{ fontSize:16, color:'#9ca3af', letterSpacing:'0.4em', fontWeight:300, textTransform:'uppercase', margin:0 }}>Alba</h2>
+          </div>
+          <h3 className="f-montserrat" style={{ fontSize:8, letterSpacing:'0.25em', color:'#1f2937', fontWeight:700, textTransform:'uppercase' }}>Trento Doc</h3>
+          <p className="f-montserrat" style={{ fontSize:7, textTransform:'uppercase', letterSpacing:'0.15em', color:'#9ca3af', lineHeight:1.6 }}>Vendemmia 2024<br/>Sboccatura Maggio 2026</p>
+        </div>
+      </div>
+    ),
+    zenit: (
+      <div className="paper-ice" style={{ position:'absolute', inset:0, border:'1px solid #e5e7eb' }}>
+        <div style={{ position:'absolute', inset:8, border:'1px solid #94a3b8', opacity:.3 }}/>
+        <div style={{ position:'relative', zIndex:1, height:'100%', display:'flex', flexDirection:'column', justifyContent:'space-between', padding:'28px 14px', textAlign:'center' }}>
+          <div>
+            <svg width="44" height="28" viewBox="0 0 100 60"><g fill="#64748b"><circle cx="50" cy="10" r="4"/><circle cx="50" cy="20" r="2" opacity=".5"/></g><path d="M10 50L50 25L90 50" stroke="#64748b" strokeWidth="2" fill="none"/></svg>
+            <p className="f-pinyon" style={{ fontSize:18, color:'#94a3b8', margin:'0 0 -4px', transform:'rotate(-2deg)' }}>Maso</p>
+            <h1 className="f-playfair" style={{ fontWeight:700, fontSize:20, color:'#475569', textTransform:'uppercase', letterSpacing:'0.1em', margin:'0 0 6px' }}>SPARC</h1>
+            <h2 className="f-montserrat" style={{ fontSize:15, color:'#64748b', letterSpacing:'0.5em', fontWeight:300, textTransform:'uppercase', margin:0 }}>Zenit</h2>
+          </div>
+          <div style={{ borderTop:'1px solid #94a3b8', paddingTop:8 }}>
+            <h3 className="f-cinzel" style={{ fontSize:10, color:'#1f2937', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.2em' }}>Müller Thurgau</h3>
+          </div>
+          <p className="f-montserrat" style={{ fontSize:8, textTransform:'uppercase', letterSpacing:'0.2em', color:'#9ca3af' }}>2025</p>
+        </div>
+      </div>
+    ),
+    vespro: (
+      <div className="paper-sand" style={{ position:'absolute', inset:0, border:'1px solid #d6d3d1' }}>
+        <div style={{ position:'absolute', inset:8, border:'2px double #b45309', opacity:.2 }}/>
+        <div style={{ position:'relative', zIndex:1, height:'100%', display:'flex', flexDirection:'column', justifyContent:'space-between', padding:'28px 14px', textAlign:'center' }}>
+          <div>
+            <svg width="44" height="28" viewBox="0 0 100 60"><g fill="#b45309"><circle cx="50" cy="15" r="3"/><circle cx="20" cy="30" r="2" opacity=".7"/><circle cx="80" cy="30" r="2" opacity=".7"/></g><path d="M10 50L50 25L90 50" stroke="#b45309" strokeWidth="2" fill="none"/></svg>
+            <p className="f-pinyon" style={{ fontSize:18, color:'#b45309', margin:'0 0 -4px', transform:'rotate(-2deg)', opacity:.8 }}>Maso</p>
+            <h1 className="f-playfair" style={{ fontWeight:700, fontSize:20, color:'#78350f', textTransform:'uppercase', letterSpacing:'0.1em', margin:'0 0 6px' }}>SPARC</h1>
+            <h2 className="f-cormorant" style={{ fontSize:20, color:'#b45309', letterSpacing:'0.2em', fontWeight:400, textTransform:'uppercase', fontStyle:'italic', margin:0 }}>Vespro</h2>
+          </div>
+          <h3 className="f-playfair" style={{ fontSize:11, color:'#78350f', fontWeight:600, textTransform:'uppercase', letterSpacing:'0.2em' }}>Nosiola</h3>
+          <p className="f-montserrat" style={{ fontSize:8, textTransform:'uppercase', letterSpacing:'0.2em', color:'#a16207', opacity:.8 }}>2022</p>
+        </div>
+      </div>
+    ),
+    crepuscolo: (
+      <div className="stone-dark" style={{ position:'absolute', inset:0, border:'1px solid #374151' }}>
+        <div style={{ position:'absolute', inset:0, background:'linear-gradient(to bottom, transparent, rgba(0,0,0,.6))' }}/>
+        <div style={{ position:'absolute', inset:12, border:'1px solid #cfaa92', opacity:.3 }}/>
+        <div style={{ position:'relative', zIndex:1, height:'100%', display:'flex', flexDirection:'column', justifyContent:'space-between', padding:'28px 14px', textAlign:'center' }}>
+          <div>
+            <svg width="44" height="28" viewBox="0 0 100 60"><g fill="#cfaa92"><circle cx="50" cy="15" r="3"/><circle cx="35" cy="20" r="3"/><circle cx="65" cy="20" r="3"/></g><path d="M10 50L50 25L90 50" stroke="#e5e7eb" strokeWidth="1.5" fill="none" opacity=".8"/></svg>
+            <p className="f-pinyon" style={{ fontSize:18, color:'#9ca3af', margin:'0 0 -4px', transform:'rotate(-2deg)' }}>Maso</p>
+            <h1 className="f-playfair" style={{ fontWeight:700, fontSize:20, color:'#cfaa92', textTransform:'uppercase', letterSpacing:'0.1em', margin:'0 0 6px' }}>SPARC</h1>
+            <h2 className="f-cormorant" style={{ fontSize:20, color:'#eaddcf', letterSpacing:'0.1em', fontWeight:300, fontStyle:'italic', margin:0 }}>Crepuscolo</h2>
+          </div>
+          <h3 className="f-cormorant" style={{ fontSize:15, color:'#9ca3af' }}>Pinot Nero</h3>
+          <p className="f-montserrat" style={{ fontSize:8, textTransform:'uppercase', letterSpacing:'0.2em', color:'#6b7280' }}>Riserva 2018</p>
+        </div>
+      </div>
+    ),
+    prytaneum: (
+      <div className="prytaneum-black" style={{ position:'absolute', inset:0, border:'1px solid rgba(212,175,55,.3)' }}>
+        <div style={{ position:'absolute', inset:8, border:'1px solid #d4af37', opacity:.6 }}/>
+        <div style={{ position:'absolute', inset:10, border:'.5px solid #d4af37', opacity:.2 }}/>
+        <div style={{ position:'relative', zIndex:1, height:'100%', display:'flex', flexDirection:'column', justifyContent:'space-between', padding:'28px 14px', textAlign:'center' }}>
+          <div>
+            <svg width="50" height="34" viewBox="0 0 100 60"><circle cx="50" cy="20" r="6" fill="none" stroke="#d4af37" strokeWidth="1"/><circle cx="50" cy="20" r="2" fill="#d4af37"/><g fill="#d4af37"><path d="M50 5L52 12L48 12Z"/><path d="M50 35L52 28L48 28Z"/><path d="M65 20L58 18L58 22Z"/><path d="M35 20L42 18L42 22Z"/></g><path d="M10 50L50 25L90 50" stroke="#d4af37" strokeWidth="2" fill="none"/></svg>
+            <p className="f-pinyon" style={{ fontSize:18, color:'#d4af37', margin:'0 0 -4px', transform:'rotate(-2deg)', opacity:.9 }}>Maso</p>
+            <h1 className="f-playfair" style={{ fontWeight:700, fontSize:20, color:'#d4af37', textTransform:'uppercase', letterSpacing:'0.1em', margin:'0 0 0' }}>SPARC</h1>
+            <div style={{ borderTop:'1px solid rgba(212,175,55,.4)', borderBottom:'1px solid rgba(212,175,55,.4)', padding:'6px 0', margin:'6px 0' }}>
+              <h2 className="f-cinzel" style={{ fontSize:17, color:'#fef3c7', letterSpacing:'0.2em', fontWeight:700, textTransform:'uppercase', margin:0 }}>Prytaneum</h2>
+            </div>
+          </div>
+          <div>
+            <h3 className="f-montserrat" style={{ fontSize:8, letterSpacing:'0.3em', color:'#d4af37', fontWeight:600, textTransform:'uppercase' }}>Trento Doc Riserva</h3>
+            <p className="f-cormorant" style={{ fontSize:12, fontStyle:'italic', color:'#6b7280', margin:'4px 0 0' }}>Extra Brut</p>
+          </div>
+          <p className="f-montserrat" style={{ fontSize:8, textTransform:'uppercase', letterSpacing:'0.3em', color:'#d4af37' }}>2016</p>
+        </div>
+      </div>
+    ),
+  };
+
+  const cardLabels = { alba:'Mattino', zenit:'Mezzogiorno', vespro:'Pomeriggio', crepuscolo:'Sera', prytaneum:'Luce Perenne' };
+
+  return (
+    <>
+      <div style={{ background:'#f3f4f6', minHeight:'100vh', padding:'96px 16px 64px' }}>
+        <div style={{ maxWidth:1600, margin:'0 auto' }}>
+          {/* Header */}
+          <header style={{ textAlign:'center', marginBottom:48 }}>
+            <h1 className="f-playfair" style={{ fontSize:'clamp(36px,8vw,56px)', color:'#111827', fontStyle:'italic', fontWeight:700, margin:'0 0 8px' }}>Maso Sparc</h1>
+            <p className="f-playfair" style={{ color:'#6b7280', textTransform:'uppercase', letterSpacing:'0.2em', fontSize:13, margin:'0 0 8px' }}>Il Ritmo della Luce: Collezione Completa</p>
+            <p className="f-cormorant" style={{ color:'#9ca3af', fontSize:13, fontStyle:'italic' }}>(Clicca sulle etichette per scoprirne l'anima)</p>
+          </header>
+
+          {/* Cards */}
+          <div className="wine-cards-wrap">
+            {Object.keys(wineDatabase).map(id => (
+              <WineCard key={id} wineId={id} label={cardLabels[id]} frontContent={cardFronts[id]} backQuote={wineDatabase[id].quote.replace(/"/g, '')} onBuy={setSelectedWine}/>
+            ))}
+          </div>
+
+          {/* Sommelier */}
+          <div style={{ maxWidth:900, margin:'0 auto', borderTop:'1px solid #e5e7eb', paddingTop:64 }}>
+            <div style={{ textAlign:'center' }}>
+              <svg style={{ width:36, height:36, color:'#d1d5db', margin:'0 auto 16px', display:'block' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"/></svg>
+              <h2 className="f-playfair" style={{ fontSize:'clamp(28px,6vw,48px)', color:'#111827', fontStyle:'italic', fontWeight:700, margin:'0 0 12px' }}>Il Sommelier Virtuale</h2>
+              <p className="f-cormorant" style={{ color:'#6b7280', fontSize:19, marginBottom:32, padding:'0 8px' }}>Raccontaci cosa mangerai stasera, oppure l'atmosfera che desideri vivere.</p>
+              <div className="sommelier-row">
+                <input
+                  type="text" value={sommelierInput} onChange={e => setSommelierInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') askSommelier(); }}
+                  placeholder="Es. risotto ai funghi, oppure 'aperitivo al tramonto'..."
+                  className="sommelier-input"
+                  style={{ padding:'14px 20px', border:'1px solid #d1d5db', background:'rgba(255,255,255,.5)', outline:'none', fontFamily:'Cormorant Garamond, Georgia, serif', fontSize:18, fontStyle:'italic', color:'#374151', width:'100%' }}
+                  onFocus={e => { e.target.style.background = '#fff'; e.target.style.borderColor = '#6b7280'; }}
+                  onBlur={e  => { e.target.style.background  = 'rgba(255,255,255,.5)'; e.target.style.borderColor = '#d1d5db'; }}
+                />
+                <button onClick={askSommelier}
+                  style={{ padding:'14px 32px', background:'#111827', color:'#fff', border:'none', cursor:'pointer', fontFamily:'Montserrat,sans-serif', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.2em', whiteSpace:'nowrap' }}
+                  onMouseOver={e => e.currentTarget.style.background = '#374151'} onMouseOut={e => e.currentTarget.style.background = '#111827'}>
+                  Chiedi
+                </button>
+              </div>
+            </div>
+
+            {isThinking && (
+              <div style={{ marginTop:40, display:'flex', justifyContent:'center', alignItems:'center', gap:8, height:64 }}>
+                <div className="thinking-dot" style={{ width:10, height:10, background:'#9ca3af', borderRadius:'50%' }}/>
+                <div className="thinking-dot" style={{ width:10, height:10, background:'#9ca3af', borderRadius:'50%' }}/>
+                <div className="thinking-dot" style={{ width:10, height:10, background:'#9ca3af', borderRadius:'50%' }}/>
+              </div>
+            )}
+
+            {result && (
+              <div ref={resultRef} className="anim-fadeIn" style={{ marginTop:40, background:'#fff', border:'1px solid #e5e7eb', boxShadow:'0 10px 40px rgba(0,0,0,.1)', padding:'36px 24px', textAlign:'center', position:'relative', overflow:'hidden' }}>
+                <div style={{ position:'absolute', inset:0, background:wineDatabase[result.wineId].color, opacity:.03 }}/>
+                <div style={{ position:'relative', zIndex:1 }}>
+                  <h3 className="f-cinzel" style={{ fontSize:10, letterSpacing:'0.3em', textTransform:'uppercase', color:'#9ca3af', marginBottom:6 }}>Il nostro consiglio</h3>
+                  <h4 className="f-playfair" style={{ fontSize:36, fontStyle:'italic', fontWeight:700, color:wineDatabase[result.wineId].color, marginBottom:20 }}>{wineDatabase[result.wineId].name}</h4>
+                  <p className="f-cormorant" style={{ fontSize:18, color:'#6b7280', lineHeight:1.7, marginBottom:28, maxWidth:640, margin:'0 auto 28px' }}>{result.reason}</p>
+                  <button
+                    onClick={() => setSelectedWine(result.wineId)}
+                    style={{ padding:'10px 28px', border:`1px solid ${wineDatabase[result.wineId].color}`, background:'transparent', color:wineDatabase[result.wineId].color, fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.2em', cursor:'pointer', transition:'all .3s' }}
+                    onMouseOver={e => { e.currentTarget.style.background = wineDatabase[result.wineId].color; e.currentTarget.style.color = '#fff'; }}
+                    onMouseOut={e  => { e.currentTarget.style.background  = 'transparent'; e.currentTarget.style.color = wineDatabase[result.wineId].color; }}
+                  >Scopri la Bottiglia</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {selectedWine && <WineDetail wineId={selectedWine} onClose={() => setSelectedWine(null)} triggerToast={triggerToast}/>}
+    </>
+  );
+};
+
+/* ─────────────────────────────────────────────
+   SECTION: AGRITURISMO
+───────────────────────────────────────────────*/
+const SectionAgriturismo = ({ triggerToast }) => {
+  const [bookingApt, setBookingApt]   = useState(null);
+  const [lightbox, setLightbox]       = useState(null);
+  const [openGallery, setOpenGallery] = useState(null);
+
+  const services = [
+    { icon:<Coffee color="#BFA872" size={28} strokeWidth={1.5}/>, title:'Colazione', sub:'Prodotti a km zero' },
+    { icon:<Wine color="#BFA872" size={28} strokeWidth={1.5}/>, title:'Degustazione', sub:'Visita in cantina inclusa' },
+    { icon:<Wifi color="#BFA872" size={28} strokeWidth={1.5}/>, title:'Wi-Fi Gratuito', sub:'Connessione nel maso' },
+    { icon:<Car color="#BFA872" size={28} strokeWidth={1.5}/>, title:'Parcheggio', sub:'Posto auto riservato' },
+    { icon:<Dog color="#BFA872" size={28} strokeWidth={1.5}/>, title:'Pet Friendly', sub:'Amici a 4 zampe ammessi' },
+  ];
+
+  return (
+    <div style={{ background:'#FDFCFB', minHeight:'100vh', paddingBottom:80 }}>
+      {/* Hero */}
+      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'100px 16px 32px', textAlign:'center' }}>
+        <Home color="#BFA872" size={36} style={{ marginBottom:20 }}/>
+        <h1 className="f-playfair section-hero-title" style={{ color:'#1c1917', fontStyle:'italic', fontWeight:700, margin:'0 0 12px' }}>Dormire al Maso</h1>
+        <p className="f-montserrat" style={{ color:'#BFA872', textTransform:'uppercase', letterSpacing:'0.4em', fontSize:10, fontWeight:700 }}>Le nostre stanze tra i vigneti</p>
+      </div>
+
+      <div style={{ maxWidth:720, margin:'0 auto', textAlign:'center', padding:'24px 16px' }}>
+        <p className="f-cormorant" style={{ fontSize:22, color:'#44403c', fontStyle:'italic', lineHeight:1.7, margin:'0 0 32px' }}>
+          Svegliarsi con la luce che filtra dalle colline di Pressano. Il silenzio della campagna rotto solo dai ritmi lenti del maso. Abbiamo restaurato con cura quattro piccoli spazi per accogliere chi cerca l'autenticità del Trentino.
+        </p>
+        <div style={{ width:48, height:1, background:'#BFA872', margin:'0 auto', opacity:.5 }}/>
+      </div>
+
+      {/* Apartments */}
+      <div style={{ maxWidth:1100, margin:'0 auto', padding:'32px 16px', display:'flex', flexDirection:'column', gap:72 }}>
+        {apartments.map((apt, idx) => (
+          <div key={apt.id} style={{ borderBottom:'1px solid #f5f5f4', paddingBottom:64 }}>
+            <div className={`apt-row${idx % 2 !== 0 ? ' apt-row-reverse' : ''}`}>
+              {/* Image */}
+              <div className="apt-image-wrap" style={{ overflow:'hidden', boxShadow:'0 4px 20px rgba(0,0,0,.1)', aspectRatio:'3/2', background:'#e7e5e4' }}>
+                <img src={apt.image} alt={apt.name} style={{ width:'100%', height:'100%', objectFit:'cover', transition:'transform 1s' }}
+                  onMouseOver={e => e.currentTarget.style.transform = 'scale(1.05)'}
+                  onMouseOut={e  => e.currentTarget.style.transform  = 'scale(1)'}
+                />
+              </div>
+
+              {/* Text */}
+              <div className="apt-text-wrap" style={{ display:'flex', flexDirection:'column', padding:'8px 0' }}>
+                <span className="f-cinzel" style={{ fontSize:10, letterSpacing:'0.3em', textTransform:'uppercase', color:'#BFA872', marginBottom:10 }}>Alloggio {idx + 1}</span>
+                <h2 className="f-playfair" style={{ fontSize:'clamp(24px,5vw,36px)', fontWeight:700, margin:'0 0 16px', color:'#1c1917' }}>{apt.name}</h2>
+                <div style={{ display:'flex', flexWrap:'wrap', gap:8, marginBottom:16 }}>
+                  {[apt.beds, apt.size].map(t => (
+                    <span key={t} className="f-montserrat" style={{ padding:'4px 10px', background:'#fafaf9', border:'1px solid #e7e5e4', fontSize:10, textTransform:'uppercase', letterSpacing:'0.15em', color:'#57534e' }}>{t}</span>
+                  ))}
+                </div>
+                <p className="f-cormorant" style={{ fontSize:18, color:'#78716c', lineHeight:1.7, marginBottom:20 }}>{apt.description}</p>
+                <div style={{ display:'flex', flexWrap:'wrap', alignItems:'center', gap:20, marginTop:8 }}>
+                  <div>
+                    <p className="f-montserrat" style={{ fontSize:9, color:'#9ca3af', textTransform:'uppercase', letterSpacing:'0.2em', fontWeight:700, marginBottom:2 }}>A partire da</p>
+                    <p className="f-playfair" style={{ fontSize:22, fontWeight:700, color:'#1c1917' }}>{apt.price} <span style={{ fontSize:12, color:'#9ca3af', fontWeight:400, fontStyle:'italic' }}>/ notte</span></p>
+                  </div>
+                  <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
+                    <button onClick={() => setBookingApt(apt)}
+                      style={{ padding:'10px 20px', background:'#1a1a1a', color:'#fff', border:'none', cursor:'pointer', fontFamily:'Montserrat,sans-serif', fontSize:10, textTransform:'uppercase', letterSpacing:'0.15em', fontWeight:700, transition:'background .3s' }}
+                      onMouseOver={e => e.currentTarget.style.background = '#BFA872'} onMouseOut={e => e.currentTarget.style.background = '#1a1a1a'}>
+                      Prenota Date
+                    </button>
+                    <button
+                      onClick={() => apt.gallery.length > 0 && setOpenGallery(openGallery === apt.id ? null : apt.id)}
+                      style={{ padding:'10px 20px', border:'1px solid #d6d3d1', background:'transparent', cursor:apt.gallery.length > 0 ? 'pointer' : 'not-allowed', fontFamily:'Montserrat,sans-serif', fontSize:10, textTransform:'uppercase', letterSpacing:'0.15em', fontWeight:700, color:apt.gallery.length > 0 ? '#1a1a1a' : '#d6d3d1', display:'flex', alignItems:'center', gap:6 }}>
+                      <ImageIcon size={12}/> {apt.gallery.length > 0 ? `Galleria (${apt.gallery.length})` : 'In arrivo'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Gallery */}
+            {openGallery === apt.id && apt.gallery.length > 0 && (
+              <div style={{ marginTop:20, borderTop:'1px solid #f5f5f4', paddingTop:20 }}>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(140px,1fr))', gap:10 }}>
+                  {apt.gallery.map((url, i) => (
+                    <div key={i} onClick={() => setLightbox(url)} style={{ aspectRatio:'4/3', overflow:'hidden', cursor:'pointer', background:'#e7e5e4' }}>
+                      <img src={url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', transition:'transform .7s, opacity .3s', opacity:.9 }}
+                        onMouseOver={e => { e.currentTarget.style.transform = 'scale(1.1)'; e.currentTarget.style.opacity = '1'; }}
+                        onMouseOut={e  => { e.currentTarget.style.transform  = 'scale(1)';   e.currentTarget.style.opacity = '.9'; }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Services */}
+      <div style={{ background:'#f5f5f4', padding:'56px 16px', borderTop:'1px solid #e7e5e4', borderBottom:'1px solid #e7e5e4', marginTop:24 }}>
+        <div style={{ maxWidth:900, margin:'0 auto' }}>
+          <h3 className="f-playfair" style={{ textAlign:'center', fontSize:'clamp(22px,5vw,32px)', color:'#1c1917', fontStyle:'italic', fontWeight:700, marginBottom:48 }}>L'Ospitalità del Maso</h3>
+          <div className="services-grid">
+            {services.map(s => (
+              <div key={s.title} style={{ flex:'0 1 140px', display:'flex', flexDirection:'column', alignItems:'center' }}>
+                <div style={{ marginBottom:12 }}>{s.icon}</div>
+                <h4 className="f-cinzel" style={{ fontSize:11, textTransform:'uppercase', letterSpacing:'0.2em', fontWeight:700, marginBottom:6 }}>{s.title}</h4>
+                <p className="f-montserrat" style={{ fontSize:10, color:'#78716c', textAlign:'center' }}>{s.sub}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Lightbox */}
+      {lightbox && (
+        <div className="anim-fadeIn" onClick={() => setLightbox(null)} style={{ position:'fixed', inset:0, zIndex:100, background:'rgba(0,0,0,.95)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+          <button onClick={() => setLightbox(null)} style={{ position:'absolute', top:16, right:16, background:'none', border:'none', cursor:'pointer', color:'rgba(255,255,255,.7)' }}><X size={36} strokeWidth={1}/></button>
+          <img src={lightbox} alt="" style={{ maxWidth:'100%', maxHeight:'90vh', objectFit:'contain', boxShadow:'0 0 80px rgba(0,0,0,.5)' }}/>
+        </div>
+      )}
+
+      {bookingApt && <BookingModal apt={bookingApt} onClose={() => setBookingApt(null)} triggerToast={triggerToast}/>}
+    </div>
+  );
+};
+
+/* ─────────────────────────────────────────────
+   SECTION: STORIA E TERRITORIO
+───────────────────────────────────────────────*/
+const SectionStoria = () => (
+  <div style={{ background:'#FDFCFB', minHeight:'100vh', paddingBottom:80 }}>
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'100px 16px 32px', textAlign:'center' }}>
+      <History color="#BFA872" size={36} style={{ marginBottom:20 }}/>
+      <h1 className="f-playfair section-hero-title" style={{ color:'#1c1917', fontStyle:'italic', fontWeight:700, margin:'0 0 12px' }}>Storia e Territorio</h1>
+      <p className="f-montserrat" style={{ color:'#BFA872', textTransform:'uppercase', letterSpacing:'0.4em', fontSize:10, fontWeight:700 }}>Le nostre radici, Pressano e il clima</p>
+    </div>
+
+    <div className="storia-content" style={{ display:'flex', flexDirection:'column', gap:64, padding:'0 16px' }}>
+      <div style={{ textAlign:'center' }}>
+        <p className="f-cormorant" style={{ fontSize:'clamp(20px,4vw,30px)', color:'#1c1917', fontStyle:'italic', lineHeight:1.6 }}>
+          "Si sono conosciuti tra i banchi dell'università a San Michele. Quattro arrivavano dal Veneto, il quinto dalla Val di Cembra. Si sono incontrati quasi per caso. Sono diventati amici per scelta."
+        </p>
+        <div style={{ width:48, height:1, background:'#BFA872', margin:'32px auto 0' }}/>
+      </div>
+
+      <div>
+        <h2 className="f-cinzel" style={{ fontSize:'clamp(16px,3vw,22px)', textTransform:'uppercase', letterSpacing:'0.2em', textAlign:'center', marginBottom:20 }}>Un luogo, non solo una cantina</h2>
+        {['Le giornate in laboratorio, le degustazioni, le discussioni infinite sul terroir e sulle fermentazioni li hanno uniti. Ma più delle lezioni, erano i sogni a tenerli insieme: non volevano solo lavorare nel vino. Volevano creare qualcosa che parlasse di loro.','Hanno guardato la mappa e si sono resi conto che esisteva un posto simbolico: Pressano. A metà strada tra Nave San Rocco e Giovo, la casa del quinto amico. Un territorio vocato alla viticoltura, ma anche crocevia naturale tra persone, culture e storie.','Non poteva essere altrove. Così è nato il sogno di Maso Sparc. Il nome richiama il maso, la tradizione, la terra. Un luogo dove il vino non è solo prodotto, ma raccontato. Dove chi arriva non è un cliente, ma un ospite.','Maso Sparc sarà il simbolo di un legame. Cinque ragazzi che hanno scelto di restare uniti. Cinque percorsi che si incontrano in un punto preciso della mappa — e della vita.'].map((t, i) => (
+          <p key={i} className="f-cormorant" style={{ fontSize:'clamp(17px,3vw,20px)', color:'#57534e', lineHeight:1.8, marginBottom:18, textAlign:'justify' }}>{t}</p>
+        ))}
+      </div>
+
+      <div className="sparc-box">
+        <div style={{ position:'absolute', top:0, left:0, right:0, height:4, background:'#BFA872' }}/>
+        <h2 className="f-playfair" style={{ fontSize:'clamp(28px,6vw,40px)', fontWeight:700, marginBottom:10 }}>S.P.A.R.C.</h2>
+        <p className="f-montserrat" style={{ fontSize:10, textTransform:'uppercase', letterSpacing:'0.25em', color:'#78716c', marginBottom:20, paddingBottom:14, borderBottom:'1px solid #e7e5e4', display:'inline-block' }}>Scaramellini • Pajola • Alessandro • Ramon • Caneva</p>
+        <p className="f-cormorant" style={{ fontSize:'clamp(16px,3vw,20px)', color:'#57534e', lineHeight:1.7, maxWidth:640, margin:'0 auto 14px' }}>Ci sono nomi che nascono da strategie di marketing. E poi ci sono nomi che nascono da un legame. Quando è arrivato il momento di scegliere, si sono messi allo stesso livello. Nessun cognome per esteso, nessuna gerarchia. Solo iniziali.</p>
+        <p className="f-cormorant" style={{ fontSize:'clamp(16px,3vw,20px)', color:'#57534e', lineHeight:1.7, maxWidth:640, margin:'0 auto' }}>Un nome che suona deciso, diretto. Che ricorda una scintilla — uno <em>"spark"</em> — qualcosa che si accende e dà inizio a tutto. E richiama anche la <em>"sparkling"</em>, la bollicina.</p>
+      </div>
+
+      <div>
+        <h2 className="f-cinzel" style={{ fontSize:'clamp(16px,3vw,22px)', textTransform:'uppercase', letterSpacing:'0.2em', textAlign:'center', marginBottom:20 }}>Le Radici: Pressano e la "Prima Scelta"</h2>
+        <p className="f-cormorant" style={{ fontSize:'clamp(17px,3vw,20px)', color:'#57534e', lineHeight:1.8, marginBottom:18, textAlign:'justify' }}>Furono i Romani a fondare questo piccolo paese, chiamandolo <em>Prytaneum</em>. In latino significa "prima scelta". Avevano individuato un luogo straordinario: una collina con esposizione perfetta a sud-ovest, baciata dal sole fino a sera, protetta e ventilata al punto giusto.</p>
+        <p className="f-cormorant" style={{ fontSize:'clamp(17px,3vw,20px)', color:'#57534e', lineHeight:1.8, marginBottom:18, textAlign:'justify' }}>Questa zona è caratterizzata da un terreno di origine morenica, il <strong>Werfen</strong>: una matrice antica, complessa, capace di dare ai vini struttura e tensione.</p>
+        <p className="f-cormorant" style={{ fontSize:'clamp(17px,3vw,20px)', color:'#57534e', lineHeight:1.8, marginBottom:18, textAlign:'justify' }}>I possedimenti di Maso Sparc si estendono per 3,5 ettari:</p>
+        <ul style={{ listStyle:'none', padding:0, display:'flex', flexDirection:'column', gap:14 }}>
+          {['2,5 ettari a Pressano — Il cuore del progetto: 1,5 ettari a Chardonnay a pergola trentina per i Trento DOC, e 1 ettaro di Nosiola, l\'unica varietà bianca autoctona del Trentino.','1 ettaro a Ville di Giovo (Val di Cembra) — Le radici del quinto socio. Più altitudine ed escursioni termiche per il Müller Thurgau e il Pinot Nero.'].map((t, i) => (
+            <li key={i} className="f-cormorant" style={{ fontSize:'clamp(16px,3vw,19px)', color:'#57534e', paddingLeft:20, borderLeft:'3px solid #BFA872', lineHeight:1.7 }}>{t}</li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  </div>
+);
+
+/* ─────────────────────────────────────────────
+   SECTION: VISITE
+───────────────────────────────────────────────*/
+const SectionVisite = ({ triggerToast }) => {
+  const [selAct, setSelAct] = useState(null);
+
+  return (
+    <div style={{ background:'#FDFCFB', minHeight:'100vh', paddingBottom:80 }}>
+      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'100px 16px 32px', textAlign:'center' }}>
+        <CalendarIcon color="#BFA872" size={36} style={{ marginBottom:20 }}/>
+        <h1 className="f-playfair section-hero-title" style={{ color:'#1c1917', fontStyle:'italic', fontWeight:700, margin:'0 0 12px' }}>Vivi il Maso</h1>
+        <p className="f-montserrat" style={{ color:'#BFA872', textTransform:'uppercase', letterSpacing:'0.4em', fontSize:10, fontWeight:700 }}>Esperienze, trekking e adozioni</p>
+      </div>
+
+      <div style={{ maxWidth:1100, margin:'0 auto', padding:'24px 16px' }}>
+
+        {/* Ciclo della Luce */}
+        <div style={{ marginBottom:80 }}>
+          <div style={{ textAlign:'center', marginBottom:48 }}>
+            <h2 className="f-playfair" style={{ fontSize:'clamp(28px,6vw,40px)', fontWeight:700, color:'#1c1917', marginBottom:12 }}>Il Ciclo della Luce</h2>
+            <p className="f-cormorant" style={{ fontSize:19, color:'#57534e', fontStyle:'italic', maxWidth:600, margin:'0 auto', padding:'0 8px' }}>Non crediamo nelle degustazioni frettolose. Abbiamo scelto di offrire un unico percorso narrativo, lento e immersivo.</p>
+          </div>
+          <div className="visite-layout">
+            {/* Timeline */}
+            <div className="visite-timeline">
+              <div className="timeline-wrap">
+                {[
+                  { icon:<MapPin size={13} color="#BFA872"/>, title:'1. Il Vigneto', desc:"Passeggiata tra i filari storici di Pressano. Toccheremo le antiche rocce di siltite rossa, capendo come il terroir e le correnti d'aria della Valle dell'Adige creino un microclima unico." },
+                  { icon:<FlaskConical size={13} color="#BFA872"/>, title:'2. La Cantina', desc:'Discesa nella barriccaia e nelle zone di affinamento. Vi racconteremo le scelte di vinificazione, il tempo trascorso sui lieviti e il rispetto per i ritmi lenti che trasformano il mosto in emozione.' },
+                  { icon:<Wine size={13} color="#fff"/>, title:'3. La Degustazione', desc:'Il culmine nella sala degustazione panoramica. Assaggeremo i 4 vini fondamentali, guidati dal produttore, accompagnati da una selezione di prodotti tipici trentini a km zero.', highlight:true },
+                ].map((step, i) => (
+                  <div key={i} style={{ position:'relative', paddingLeft:36 }}>
+                    <div style={{ position:'absolute', left:-14, top:0, width:28, height:28, borderRadius:'50%', border:step.highlight ? 'none' : '2px solid #BFA872', background:step.highlight ? '#BFA872' : '#FDFCFB', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:step.highlight ? '0 4px 12px rgba(191,168,114,.4)' : 'none' }}>
+                      {step.icon}
+                    </div>
+                    <h3 className="f-cinzel" style={{ fontSize:'clamp(14px,3vw,18px)', textTransform:'uppercase', letterSpacing:'0.15em', marginBottom:6 }}>{step.title}</h3>
+                    <p className="f-cormorant" style={{ fontSize:17, color:'#57534e', lineHeight:1.7 }}>{step.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Info box */}
+            <div className="visite-infobox">
+              <div style={{ background:'#fff', border:'1px solid #e7e5e4', padding:'24px 20px', boxShadow:'0 1px 4px rgba(0,0,0,.06)' }}>
+                <h3 className="f-cinzel" style={{ fontSize:11, letterSpacing:'0.3em', textTransform:'uppercase', fontWeight:700, textAlign:'center', marginBottom:24 }}>Info Pratiche</h3>
+                {[[<Clock size={18} color="#BFA872"/>, 'Durata', 'Circa 2 ore'], [<Users size={18} color="#BFA872"/>, 'Gruppi', 'Da 2 a 12 persone'], [<Sun size={18} color="#BFA872"/>, 'Disponibilità', 'Su prenotazione']].map(([icon, lbl, val], i) => (
+                  <div key={i} style={{ display:'flex', alignItems:'center', gap:14, marginBottom:20 }}>
+                    {icon}
+                    <div>
+                      <p className="f-montserrat" style={{ fontSize:9, textTransform:'uppercase', letterSpacing:'0.2em', color:'#a8a29e', margin:'0 0 2px' }}>{lbl}</p>
+                      <p className="f-playfair" style={{ fontSize:17, color:'#1c1917', margin:0 }}>{val}</p>
+                    </div>
+                  </div>
+                ))}
+                <div style={{ borderTop:'1px solid #f5f5f4', paddingTop:20, textAlign:'center', marginBottom:24 }}>
+                  <p className="f-montserrat" style={{ fontSize:9, textTransform:'uppercase', letterSpacing:'0.2em', color:'#a8a29e', marginBottom:4 }}>Costo a persona</p>
+                  <p className="f-playfair" style={{ fontSize:36, fontWeight:700, margin:0 }}>30 €</p>
+                </div>
+                <button onClick={() => setSelAct(activitiesDB['luce'])}
+                  style={{ width:'100%', padding:14, background:'#1a1a1a', color:'#fff', border:'none', cursor:'pointer', fontFamily:'Montserrat,sans-serif', fontSize:11, textTransform:'uppercase', letterSpacing:'0.2em', fontWeight:700, transition:'background .3s' }}
+                  onMouseOver={e => e.currentTarget.style.background = '#BFA872'} onMouseOut={e => e.currentTarget.style.background = '#1a1a1a'}>
+                  Prenota l'Esperienza
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* 4 calici */}
+          <div style={{ background:'#1a1a1a', color:'#fff', padding:'48px 20px', marginTop:48 }}>
+            <div style={{ textAlign:'center', marginBottom:36 }}>
+              <h2 className="f-playfair" style={{ fontSize:'clamp(22px,5vw,32px)', fontStyle:'italic', margin:'0 0 10px' }}>I 4 Calici in Degustazione</h2>
+              <p className="f-montserrat" style={{ fontSize:10, textTransform:'uppercase', letterSpacing:'0.25em', color:'#BFA872' }}>Dalla freschezza del mattino alla profondità della sera</p>
+            </div>
+            <div className="calici-grid">
+              {['alba','zenit','vespro','crepuscolo'].map(id => {
+                const w = wineDatabase[id];
+                return (
+                  <div key={id} style={{ display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center', padding:14, border:'1px solid #292524', background:'rgba(41,37,36,.5)' }}>
+                    <div style={{ color:w.color, transform:'scale(.65)', marginBottom:10 }}><WineIcon wineId={id}/></div>
+                    <h3 className="f-playfair" style={{ fontSize:16, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:w.color, marginBottom:2 }}>{w.name}</h3>
+                    <p className="f-cinzel" style={{ fontSize:8, letterSpacing:'0.2em', textTransform:'uppercase', color:'#d6d3d1', marginBottom:8 }}>{w.type}</p>
+                    <p className="f-cormorant" style={{ fontSize:12, fontStyle:'italic', color:'#6b7280', lineHeight:1.5 }}>{w.quote}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Adotta un filare */}
+        <div style={{ background:'#fff', border:'1px solid #e7e5e4', padding:'24px 20px', boxShadow:'0 1px 4px rgba(0,0,0,.06)', marginBottom:80 }}>
+          <div className="adozione-card">
+            <div className="adozione-icon">
+              <div style={{ width:100, height:100, borderRadius:'50%', border:'4px solid #BFA872', display:'flex', alignItems:'center', justifyContent:'center', background:'#fafaf9' }}>
+                <MapPin size={36} color="#BFA872"/>
+              </div>
+            </div>
+            <div style={{ flex:'1 1 260px', minWidth:0 }}>
+              <p className="f-montserrat" style={{ fontSize:9, textTransform:'uppercase', letterSpacing:'0.2em', color:'#BFA872', fontWeight:700, marginBottom:6, display:'flex', alignItems:'center', gap:6 }}>
+                <Clock size={11}/> Prenotabile 1 Giu – 1 Ago
+              </p>
+              <h2 className="f-playfair" style={{ fontSize:'clamp(22px,5vw,32px)', fontWeight:700, margin:'0 0 12px' }}>Adotta un Filare</h2>
+              <p className="f-cormorant" style={{ fontSize:18, color:'#57534e', lineHeight:1.6, marginBottom:12 }}>Un classico che crea un legame diretto con la nostra terra. Adottando una porzione di vigna, seguirai il ciclo della natura e riceverai il frutto di quel filare.</p>
+              <div style={{ background:'#fafaf9', border:'1px solid #f5f5f4', padding:'6px 14px', display:'inline-block', marginBottom:20, fontSize:11, fontFamily:'Montserrat,sans-serif', color:'#78716c' }}>
+                Disponibilità limitata: <strong style={{ color:'#1c1917' }}>solo 5 filari</strong> (max 1 a persona).
+              </div>
+              <ul style={{ listStyle:'none', padding:0, marginBottom:24, display:'flex', flexDirection:'column', gap:6 }}>
+                {['Filare di Müller Thurgau con targhetta recante il tuo nome','6 bottiglie personalizzate a fine stagione','Aggiornamenti mensili sullo stato della vigna'].map(t => (
+                  <li key={t} className="f-montserrat" style={{ fontSize:12, color:'#78716c' }}>• {t}</li>
+                ))}
+              </ul>
+              <div style={{ display:'flex', flexWrap:'wrap', alignItems:'center', gap:20 }}>
+                <span className="f-playfair" style={{ fontSize:32, fontWeight:700 }}>150 €</span>
+                <button onClick={() => setSelAct(activitiesDB['adozione'])}
+                  style={{ padding:'10px 28px', background:'#1a1a1a', color:'#fff', border:'none', cursor:'pointer', fontFamily:'Montserrat,sans-serif', fontSize:10, textTransform:'uppercase', letterSpacing:'0.2em', fontWeight:700, transition:'background .3s' }}
+                  onMouseOver={e => e.currentTarget.style.background = '#BFA872'} onMouseOut={e => e.currentTarget.style.background = '#1a1a1a'}>
+                  Richiedi Adozione
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Trekking */}
+        <div style={{ marginBottom:80 }}>
+          <h2 className="f-playfair" style={{ fontSize:'clamp(26px,6vw,40px)', fontWeight:700, textAlign:'center', marginBottom:20 }}>Vigna-Trekking al Tramonto</h2>
+          <p className="f-cormorant" style={{ fontSize:19, color:'#57534e', textAlign:'center', maxWidth:680, margin:'0 auto 40px', lineHeight:1.7, padding:'0 8px' }}>Una camminata di 60/90 minuti guidata da uno di noi vi porterà a scoprire le magnifiche colline di Pressano, terminando con una degustazione proprio dove nasce l'uva.</p>
+          <div className="trekking-grid">
+            {[
+              { id:'trekking1', title:'Pacchetto 1: Territorio', dark:false, desc:'Camminata completa e degustazione dei vini più legati al terroir: la Nosiola e lo spumante Alba.', price:'35 €', sub:'/ persona (min. 2)' },
+              { id:'trekking2', title:'Pacchetto 2: Premium',   dark:true,  desc:'Camminata completa e degustazione di vini premium a scelta o la nostra migliore selezione.', price:'55 €', sub:'/ persona (min. 4)' },
+            ].map(p => (
+              <div key={p.id} style={{ background:p.dark ? '#1a1a1a' : '#fafaf9', border:`1px solid ${p.dark ? '#292524' : '#e7e5e4'}`, padding:'28px 24px', position:'relative', boxShadow:p.dark ? '0 4px 20px rgba(0,0,0,.2)' : 'none', display:'flex', flexDirection:'column' }}>
+                <div style={{ position:'absolute', top:0, left:0, right:0, height:4, background:'#BFA872' }}/>
+                <h3 className="f-cinzel" style={{ fontSize:16, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.15em', marginBottom:12, color:p.dark ? '#BFA872' : '#1c1917' }}>{p.title}</h3>
+                <p className="f-montserrat" style={{ fontSize:12, color:p.dark ? '#a8a29e' : '#78716c', marginBottom:20, flex:1 }}>{p.desc}</p>
+                <div>
+                  <p className="f-playfair" style={{ fontSize:26, fontWeight:700, color:p.dark ? '#fff' : '#1c1917', margin:'0 0 4px' }}>{p.price} <span style={{ fontSize:13, fontWeight:400, fontStyle:'italic', color:p.dark ? '#78716c' : '#9ca3af' }}>{p.sub}</span></p>
+                  <button onClick={() => setSelAct(activitiesDB[p.id])}
+                    style={{ marginTop:14, width:'100%', padding:12, background:p.dark ? '#BFA872' : 'transparent', color:'#1a1a1a', border:p.dark ? 'none' : '1px solid #1a1a1a', cursor:'pointer', fontFamily:'Montserrat,sans-serif', fontSize:10, textTransform:'uppercase', letterSpacing:'0.2em', fontWeight:700, transition:'all .3s' }}
+                    onMouseOver={e => { e.currentTarget.style.background = p.dark ? '#fff' : '#1a1a1a'; e.currentTarget.style.color = p.dark ? '#1a1a1a' : '#fff'; }}
+                    onMouseOut={e  => { e.currentTarget.style.background  = p.dark ? '#BFA872' : 'transparent'; e.currentTarget.style.color = '#1a1a1a'; }}>
+                    Prenota ora
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Degustazione Cieca */}
+        <div>
+          <h2 className="f-playfair" style={{ fontSize:'clamp(26px,6vw,40px)', fontWeight:700, textAlign:'center', borderTop:'1px solid #e7e5e4', paddingTop:56, marginBottom:28 }}>L'Essenza dei Sensi</h2>
+          <div style={{ maxWidth:600, margin:'0 auto', background:'#fff', border:'1px solid #e7e5e4', padding:'24px 20px', boxShadow:'0 1px 4px rgba(0,0,0,.06)', display:'flex', alignItems:'flex-start', gap:16 }}>
+            <FlaskConical color="#BFA872" size={28} style={{ flexShrink:0, marginTop:4 }}/>
+            <div style={{ width:'100%' }}>
+              <h4 className="f-cinzel" style={{ fontSize:18, fontWeight:700, marginBottom:6 }}>Degustazione alla Cieca</h4>
+              <p className="f-montserrat" style={{ fontSize:12, color:'#78716c', marginBottom:20, lineHeight:1.6 }}>Lasciati guidare dai sensi. Degustazione bendati per scoprire i profumi del territorio in modo inedito.</p>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', borderTop:'1px solid #f5f5f4', paddingTop:14, flexWrap:'wrap', gap:12 }}>
+                <span className="f-playfair" style={{ fontSize:24, fontWeight:700 }}>25 €</span>
+                <button onClick={() => setSelAct(activitiesDB['cieca'])}
+                  style={{ padding:'8px 20px', background:'#f5f5f4', border:'none', cursor:'pointer', fontFamily:'Montserrat,sans-serif', fontSize:10, textTransform:'uppercase', letterSpacing:'0.2em', fontWeight:700, transition:'all .3s' }}
+                  onMouseOver={e => { e.currentTarget.style.background = '#BFA872'; e.currentTarget.style.color = '#fff'; }}
+                  onMouseOut={e  => { e.currentTarget.style.background  = '#f5f5f4'; e.currentTarget.style.color = '#1c1917'; }}>
+                  Prenota
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {selAct && <ActivityModal activity={selAct} onClose={() => setSelAct(null)} triggerToast={triggerToast}/>}
+    </div>
+  );
+};
+
+/* ─────────────────────────────────────────────
+   MOSAIC TILES DATA
+───────────────────────────────────────────────*/
+const mosaicTiles = [
+  { id:'collezione',        title:'Collezione',          subtitle:'Le linee dei vini',                 image:'https://images.unsplash.com/photo-1585553616435-2dc0a54e271d?auto=format&fit=crop&q=80' },
+  { id:'agriturismo',       title:'Agriturismo',         subtitle:'Le nostre camere',                  image:'https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&q=80' },
+  { id:'visite',            title:'Visite e Attività',   subtitle:'Esperienze e territorio',           image:'https://images.unsplash.com/photo-1506377247377-2a5b3b0ca7df?auto=format&fit=crop&q=80' },
+  { id:'storia_territorio', title:'Storia e Territorio', subtitle:'Le nostre radici, Pressano e il clima', image:'https://images.unsplash.com/photo-1584916201218-f4242ceb4809?auto=format&fit=crop&q=80' },
+];
+
+/* ─────────────────────────────────────────────
+   APP ROOT
+───────────────────────────────────────────────*/
+const App = () => {
+  const [view, setView]                 = useState('landing');
+  const [activeSection, setActiveSection] = useState(null);
+  const [toast, setToast]               = useState({ show:false, msg:'' });
+
+  const triggerToast = (msg = 'Azione temporaneamente disabilitata.') => {
+    setToast({ show:true, msg });
+    setTimeout(() => setToast(t => ({ ...t, show:false })), 3500);
+  };
+
+  const goToSection = tile => { setActiveSection(tile); setView('section'); window.scrollTo(0, 0); };
+  const goBack      = ()   => { setView('mosaic'); setActiveSection(null); };
+
+  /* ── LANDING ── */
+  if (view === 'landing') return (
+    <div style={{ position:'relative', height:'100vh', width:'100%', overflow:'hidden', background:'#1A1A1A', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center' }}>
+      <div className="anim-bgPulse" style={{ position:'absolute', inset:0, backgroundImage:"url('sfondo_vigneto.jpg')", backgroundSize:'cover', backgroundPosition:'center', opacity:.6, mixBlendMode:'overlay', transform:'scale(1.05)' }}/>
+      <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, #1A1A1A, rgba(26,26,26,.4) 50%, rgba(26,26,26,.8))' }}/>
+      <div className="anim-slideUp" style={{ position:'relative', zIndex:10, display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center', padding:'0 20px' }}>
+        <MasoSparcLogo style={{ width:72, height:72, marginBottom:24, filter:'drop-shadow(0 0 24px rgba(191,168,114,.4))' }} color="#BFA872"/>
+        <h1 className="f-playfair landing-title" style={{ color:'#fff', letterSpacing:'-0.02em', textShadow:'0 0 40px rgba(0,0,0,.6)', margin:'0 0 8px' }}>
+          Maso <span style={{ fontStyle:'italic', fontWeight:300, color:'#BFA872' }}>SPARC</span>
+        </h1>
+        <div style={{ marginBottom:60 }}>
+          <p className="f-montserrat" style={{ color:'#BFA872', fontSize:9, textTransform:'uppercase', letterSpacing:'0.6em', fontWeight:700, textShadow:'0 0 12px rgba(0,0,0,.5)', marginBottom:8 }}>PRESSANO – TRENTO DOC & MORE...</p>
+          <p className="f-cormorant" style={{ color:'rgba(255,255,255,.8)', fontSize:'clamp(15px,3vw,22px)', fontStyle:'italic', letterSpacing:'0.1em' }}>Cinque storie, una scintilla: le bollicine di Pressano</p>
+        </div>
+        <button onClick={() => setView('mosaic')} style={{ background:'none', border:'none', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:12 }}>
+          <span className="f-montserrat" style={{ color:'rgba(255,255,255,.8)', fontSize:10, textTransform:'uppercase', letterSpacing:'0.4em' }}>Entra</span>
+          <div style={{ width:1, height:40, background:'rgba(255,255,255,.3)' }}/>
+        </button>
+      </div>
+    </div>
+  );
+
+  /* ── SECTION ── */
+  if (view === 'section' && activeSection) return (
+    <div style={{ minHeight:'100vh', background:'#FDFCFB', color:'#1A1A1A' }} className="anim-fadeIn">
+      <Navbar onBack={goBack}/>
+      {activeSection.id === 'collezione'        && <SectionCollezione triggerToast={triggerToast}/>}
+      {activeSection.id === 'agriturismo'       && <SectionAgriturismo triggerToast={triggerToast}/>}
+      {activeSection.id === 'storia_territorio' && <SectionStoria/>}
+      {activeSection.id === 'visite'            && <SectionVisite triggerToast={triggerToast}/>}
+      <Toast show={toast.show} message={toast.msg}/>
+    </div>
+  );
+
+  /* ── MOSAIC ── */
+  return (
+    <div className="anim-fadeIn" style={{ minHeight:'100vh', background:'#1A1A1A', padding:'16px' }}>
+      <header style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20, padding:'0 4px' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+          <MasoSparcLogo style={{ width:32, height:32 }} color="#BFA872"/>
+          <span className="f-playfair" style={{ fontSize:16, letterSpacing:'0.2em', textTransform:'uppercase', color:'#fff' }}>SPARC</span>
+        </div>
+        <span className="f-montserrat" style={{ color:'#BFA872', fontSize:9, textTransform:'uppercase', letterSpacing:'0.3em', fontWeight:700 }}>Esplora</span>
+      </header>
+      <div className="mosaic-grid">
+        {mosaicTiles.map((tile, idx) => (
+          <div
+            key={tile.id}
+            className={`mosaic-tile-${idx}`}
+            onClick={() => goToSection(tile)}
+            style={{ position:'relative', overflow:'hidden', background:'#292524', cursor:'pointer', borderRadius:2 }}
+          >
+            <div style={{ position:'absolute', inset:0, backgroundImage:`url(${tile.image})`, backgroundSize:'cover', backgroundPosition:'center', opacity:.6, transition:'transform 1s, opacity .5s' }}
+              onMouseOver={e => { e.currentTarget.style.transform = 'scale(1.1)'; e.currentTarget.style.opacity = '.4'; }}
+              onMouseOut={e  => { e.currentTarget.style.transform  = 'scale(1)';   e.currentTarget.style.opacity = '.6'; }}
+            />
+            <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, #1A1A1A, rgba(26,26,26,.2) 50%, transparent)' }}/>
+            <div style={{ position:'absolute', inset:0, padding:'20px 20px', display:'flex', flexDirection:'column', justifyContent:'flex-end' }}>
+              <h3 className="f-playfair" style={{ fontSize:'clamp(18px,3vw,28px)', color:'#fff', margin:'0 0 6px' }}>{tile.title}</h3>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                <p className="f-montserrat" style={{ fontSize:9, textTransform:'uppercase', letterSpacing:'0.2em', color:'#BFA872', fontWeight:700, margin:0 }}>{tile.subtitle}</p>
+                <ChevronRight color="#fff" size={18}/>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default App;
